@@ -1,105 +1,60 @@
-# ADR 0002: Invoice Correlation, Storage and Wallet Handoff
+# ADR 0002: Correlación de facturas, almacenamiento y entrega a la billetera
 
-- Status: Accepted
-- Date: 2026-11-07
-- Supersedes: open decisions in ADR 0001 and docs/ARCHITECTURE.md
+- Estado: Aceptado
+- Fecha: 2026-11-07
+- Reemplaza: las decisiones abiertas del ADR 0001 y de docs/ARCHITECTURE.md
 
-## Context
+## Contexto
 
-The MVP must demonstrate, on Stellar Testnet, a complete payment request
-flow: invoice creation, QR presentation, wallet authorization, and
-settlement verification tied to the exact invoice. ADR 0001 left the
-correlation mechanism, storage model, asset choice, and wallet handoff
-unresolved. All four had to be decided before implementation.
+El MVP debe demostrar, sobre Stellar Testnet, un flujo completo de solicitud de pago: creación de factura, presentación por QR, autorización desde la billetera y verificación de la liquidación ligada a la factura exacta. El ADR 0001 dejó sin resolver el mecanismo de correlación, el modelo de almacenamiento, la elección de activo y la entrega a la billetera. Los cuatro tuvieron que decidirse antes de la implementación.
 
-## Decisions
+## Decisiones
 
-### Asset: native XLM
+### Activo: XLM nativo
 
-Invoices are denominated in native XLM only. XLM needs no trustline, no
-asset issuer, and no liquidity assumption on Testnet, which removes an
-entire class of setup failures from the demo path. Issued assets remain a
-post-hackathon extension (PRD future roadmap).
+Las facturas se denominan solo en XLM nativo. XLM no necesita trustline, emisor de activo ni suposiciones de liquidez en Testnet, lo que elimina una clase completa de fallos de configuración del camino de la demo. Los activos emitidos quedan como extensión posterior al hackathon (hoja de ruta futura del PRD).
 
-### Correlation: unique text memo
+### Correlación: memo de texto único
 
-Each invoice carries a unique reference of the form `ISQ` plus 10 random
-base32 characters (13 ASCII bytes, well inside the 28 byte text memo
-limit). The payment transaction attaches the reference as a text memo.
+Cada factura lleva una referencia única con la forma `ISQ` más 10 caracteres base32 aleatorios (13 bytes ASCII, muy dentro del límite de 28 bytes del memo de texto). La transacción de pago adjunta la referencia como memo de texto.
 
-Verification matches a Horizon transaction against all of the following:
+La verificación compara una transacción de Horizon contra todos los siguientes criterios:
 
-- transaction successful;
-- text memo equals the invoice reference;
-- first payment operation is native XLM;
-- payment destination equals the invoice recipient;
-- payment amount equals the invoice amount exactly, compared in stroops;
-- transaction source differs from the recipient (a merchant cannot settle
-  its own invoice).
+- transacción exitosa;
+- el memo de texto es igual a la referencia de la factura;
+- la primera operación de pago es en XLM nativo;
+- el destino del pago es igual al destinatario de la factura;
+- el monto del pago es igual al monto de la factura exactamente, comparado en stroops;
+- el origen de la transacción difiere del destinatario (un comercio no puede liquidar su propia factura).
 
-Because references are random (50 bits of entropy) and uniqueness is also
-enforced per merchant store at save time, one transaction can never
-satisfy two invoices. Verification is idempotent: re-running it for a
-settled invoice returns the stored result, and a transaction hash already
-claimed by another invoice is rejected.
+Como las referencias son aleatorias (50 bits de entropía) y la unicidad también se aplica por tienda de comercio al guardar, una transacción nunca puede satisfacer dos facturas. La verificación es idempotente: volver a ejecutarla para una factura ya liquidada devuelve el resultado almacenado, y un hash de transacción ya reclamado por otra factura se rechaza.
 
-Alternatives considered:
+Alternativas consideradas:
 
-- Soroban invoice contract with events: rejected for the MVP. Native
-  operations plus memos provide the required correlation and verification
-  semantics with no contract deployment, authorization model, or storage
-  cost to review inside the hackathon window (M3 of the backlog keeps the
-  option open).
-- Amount-encoded references: rejected because the memo must stay opaque
-  and unique, and the amount is already an explicit invoice field.
+- Contrato de facturas en Soroban con eventos: rechazado para el MVP. Las operaciones nativas más los memos proporcionan la semántica de correlación y verificación requerida sin despliegue de contratos, modelo de autorización ni costo de almacenamiento que revisar dentro de la ventana del hackathon (el M3 del backlog mantiene la opción abierta).
+- Referencias con el monto codificado: rechazado porque el memo debe permanecer opaco y único, y el monto ya es un campo explícito de la factura.
 
-### Storage: browser localStorage, keyed by merchant address
+### Almacenamiento: localStorage del navegador, claveado por la dirección del comercio
 
-Invoices are stored under `interstellaq.invoices.<public key>` and
-merchant profiles under `interstellaq.merchant.<public key>`. There is no
-backend: the MVP keeps its trust surface inside the browser, which
-matches the non-custodial posture in docs/SECURITY.md. Stored status is
-treated as untrusted client state; only Horizon evidence can move an
-invoice to `settled`.
+Las facturas se guardan bajo `interstellaq.invoices.<clave pública>` y los perfiles de comercio bajo `interstellaq.merchant.<clave pública>`. No hay backend: el MVP mantiene su superficie de confianza dentro del navegador, lo que coincide con la postura sin custodia de docs/SECURITY.md. El estado almacenado se trata como estado de cliente no confiable; solo la evidencia de Horizon puede mover una factura a `settled`.
 
-Cross-device reads are handled by the QR payload: the invoice URL
-embeds the complete payment request in the URL fragment
-(`#p=<base64url json>`), so any device that scans the QR can render the
-request and verify settlement against public Horizon data without a
-shared store.
+Las lecturas entre dispositivos se resuelven con el payload del QR: la URL de la factura incrusta la solicitud completa de pago en el fragmento de la URL (`#p=<json base64url>`), de modo que cualquier dispositivo que escanee el QR pueda renderizar la solicitud y verificar la liquidación contra datos públicos de Horizon sin un almacén compartido.
 
-### Wallet handoff: SEP-7 plus in-app Wallets Kit signing
+### Entrega a la billetera: SEP-7 más firma con Wallets Kit dentro de la aplicación
 
-Two handoff paths, both non-custodial:
+Dos caminos de entrega, ambos sin custodia:
 
-1. In-app: the Stellar Wallets Kit (already provided by Scaffold Stellar)
-   connects the payer's wallet, the app builds the unsigned payment, the
-   wallet signs it, and the app submits it. This is the demo path and the
-   one exercised end to end.
-2. SEP-7: the invoice detail exposes a `web+stellar://pay` URI carrying
-   destination, asset, amount, memo, memo type, and network, for wallets
-   that register the protocol handler.
+1. Dentro de la aplicación: el Stellar Wallets Kit (ya provisto por Scaffold Stellar) conecta la billetera del pagador, la aplicación construye el pago sin firmar, la billetera lo firma y la aplicación lo envía. Este es el camino de la demo y el que se ejercita de extremo a extremo.
+2. SEP-7: el detalle de la factura expone un URI `web+stellar://pay` con destino, activo, monto, memo, tipo de memo y red, para billeteras que registren el manejador de protocolo.
 
-### Merchant registration: signed no-op transaction
+### Registro de comercio: transacción sin efecto firmada
 
-Registration submits a `bumpSequence` operation to the account's current
-sequence number with the fixed memo `InterstellaQ:registro`. It changes no
-ledger state but can only be signed by the holder of the account secret,
-so a confirmed transaction proves control before the display name is
-trusted (docs/SECURITY.md, authorization requirements). The transaction
-hash is stored as registration evidence and linked to stellar.expert.
+El registro envía una operación `bumpSequence` a la secuencia actual de la cuenta con el memo fijo `InterstellaQ:registro`. No cambia ningún estado del libro mayor, pero solo puede ser firmada por el titular del secreto de la cuenta, por lo que una transacción confirmada demuestra el control antes de que el nombre visual sea de confianza (docs/SECURITY.md, requisitos de autorización). El hash de la transacción se guarda como evidencia de registro y se vincula en stellar.expert.
 
-## Consequences
+## Consecuencias
 
-- Settlement evidence and registration proof are public and inspectable
-  on stellar.expert/Testnet.
-- The merchant panel and the invoice page poll Horizon every 20 seconds
-  while an invoice is pending, so a confirmed payment updates the status
-  without user action. The poll pauses when the tab is hidden, never runs
-  two queries at once, and a failed check leaves the status unchanged.
-- The demo depends on Horizon Testnet availability; verification failures
-  surface as an actionable status instead of an invoice state change.
-- Invoice state does not survive a browser clear or move across devices
-  except through the QR payload; a shared backend is a post-MVP decision.
-- The Soroban route (backlog M3) remains available if programmable
-  settlement rules become a requirement.
+- La evidencia de liquidación y la prueba de registro son públicas e inspeccionables en stellar.expert/Testnet.
+- El panel del comercio y la página de la factura consultan Horizon cada 20 segundos mientras hay una factura pendiente, de modo que un pago confirmado actualiza el estado sin acción del usuario. La consulta se pausa con la pestaña oculta, nunca ejecuta dos consultas a la vez y un chequeo fallido deja el estado sin cambios.
+- La demo depende de la disponibilidad de Horizon Testnet; los fallos de verificación se presentan como un estado accionable en lugar de un cambio en la factura.
+- El estado de la factura no sobrevive a un borrado del navegador ni se mueve entre dispositivos salvo a través del payload del QR; un backend compartido es una decisión posterior al MVP.
+- La ruta Soroban (backlog M3) sigue disponible si las reglas de liquidación programables se convierten en un requisito.

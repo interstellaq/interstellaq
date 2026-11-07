@@ -1,55 +1,55 @@
-# Proposed Architecture
+# Arquitectura propuesta
 
-## Status and principles
+## Estado y principios
 
-This document separates confirmed choices from proposals. Confirmed: React/Vite/TypeScript frontend, Rust/Soroban where contracts are needed, Scaffold Stellar as the development framework, and Stellar Testnet for the MVP. The application is generated at `app/` and the delivered decisions are recorded in [ADR 0002](adr/0002-invoice-correlation.md).
+Este documento separa las decisiones confirmadas de las propuestas. Confirmadas: frontend React/Vite/TypeScript, Rust/Soroban donde se necesiten contratos, Scaffold Stellar como framework de desarrollo y Stellar Testnet para el MVP. La aplicación se genera en `app/` y las decisiones entregadas están registradas en [ADR 0002](adr/0002-invoice-correlation.md).
 
-## Confirmed decisions
+## Decisiones confirmadas
 
-- Customers authorize transfers with their own Stellar-compatible wallet; InterstellaQ does not custody signing keys.
-- The MVP is constrained to Stellar Testnet.
-- Native Stellar transaction capabilities are preferred when they meet the requirement.
-- SEP-7 support is a design consideration, not a verified integration commitment.
+- Los clientes autorizan transferencias con su propia billetera compatible con Stellar; InterstellaQ no custodia claves de firma.
+- El MVP está restringido a Stellar Testnet.
+- Se prefieren las capacidades nativas de transacciones de Stellar cuando cumplen el requisito.
+- El soporte SEP-7 es una consideración de diseño, no un compromiso de integración verificado.
 
-## Proposed flow
+## Flujo propuesto
 
-1. A frontend associates a merchant profile with a public Stellar account.
-2. The merchant creates an invoice: recipient, asset, amount, expiry, and unique reference.
-3. The frontend encodes the request into a QR payload for wallet handoff.
-4. The customer wallet builds and signs the selected Stellar operation or transaction.
-5. The frontend or a minimal read-only index/query path verifies Testnet settlement and records the invoice status.
+1. Un frontend asocia un perfil de comercio con una cuenta pública de Stellar.
+2. El comercio crea una factura: destinatario, activo, monto, expiración y referencia única.
+3. El frontend codifica la solicitud en un payload QR para la entrega a la billetera.
+4. La billetera del cliente construye y firma la operación o transacción de Stellar seleccionada.
+5. El frontend, o una ruta mínima de solo lectura/consulta, verifica la liquidación en Testnet y registra el estado de la factura.
 
-## Proposed components
+## Componentes propuestos
 
 ### Frontend
 
-The React application at `app/app/` provides merchant screens, invoice lifecycle views, QR display, wallet handoff, and status. Scaffold Stellar-generated clients would be used if a Soroban contract is introduced.
+La aplicación React en `app/app/` proporciona las pantallas del comercio, las vistas del ciclo de vida de la factura, la visualización del QR, la entrega a la billetera y el estado. Los clientes generados por Scaffold Stellar se usarían si se introduce un contrato Soroban.
 
-### Stellar accounts, assets, and transfers
+### Cuentas, activos y transferencias de Stellar
 
-The implementation uses standard Stellar operations for direct payments, which preserves the required invoice correlation and verification semantics. The MVP settles in native XLM: no trustline is needed. Issued assets (including stablecoins) require trustline handling and are deferred to the roadmap.
+La implementación usa operaciones nativas estándar de Stellar para pagos directos, lo que preserva la semántica de correlación y verificación de facturas requerida. El MVP liquida en XLM nativo: no se necesita trustline. Los activos emitidos (incluidas las stablecoins) requieren manejo de trustlines y se diferían a la hoja de ruta.
 
-### Soroban contracts
+### Contratos Soroban
 
-Potential uses include durable invoice state, atomic programmable settlement rules, or merchant policy enforcement. The MVP needs none of them, so no contract is deployed; the workspace under `app/contracts/` is kept for backlog M3. Contract authorization, storage costs, and wallet support must be evaluated before adopting this route.
+Usos potenciales: estado durable de factura, reglas de liquidación programables atómicas o aplicación de políticas del comercio. El MVP no necesita ninguno, por lo que no se despliega ningún contrato; el espacio bajo `app/contracts/` queda reservado para el backlog M3. La autorización de contratos, los costos de almacenamiento y el soporte de billeteras deben evaluarse antes de adoptar esta ruta.
 
-### Merchant registration
+### Registro de comercio
 
-Delivered as a signed no-op transaction (sequence bump) with a fixed memo, which proves control of the public key on chain, plus off-chain display metadata in browser storage. No central registry.
+Entregado como una transacción sin efecto firmada (incremento de secuencia) con un memo fijo, que demuestra el control de la clave pública en cadena, más metadatos visuales fuera de cadena en el almacenamiento del navegador. Sin registro central.
 
-### Invoice lifecycle
+### Ciclo de vida de la factura
 
-Delivered states: `active`, `settled`, `expired`, and `verification_failed`. The transition to `settled` is based on verified Testnet evidence, never on a client assertion.
+Estados entregados: `active`, `settled`, `expired` y `verification_failed`. La transición a `settled` se basa en evidencia verificada de Testnet, nunca en una afirmación del cliente.
 
-### Settlement verification
+### Verificación de la liquidación
 
-Delivered: a Horizon query over the recipient's recent transactions, filtered by the invoice's unique text memo, then matched against recipient, native asset, exact amount in stroops, and a source account different from the recipient. Failed checks leave the stored status untouched.
+Entregado: una consulta a Horizon sobre las transacciones recientes del destinatario, filtrada por el memo de texto único de la factura, y luego comparada contra destinatario, activo nativo, monto exacto en stroops y una cuenta de origen distinta del destinatario. Los chequeos fallidos dejan el estado almacenado intacto.
 
-The check runs automatically every 20 seconds while the merchant panel or the invoice page holds a pending invoice, in addition to the manual "Verificar estado" button and the check that follows a payment submission. The poll pauses while the tab is hidden and never overlaps itself.
+El chequeo se ejecuta automáticamente cada 20 segundos mientras el panel del comercio o la página de la factura tengan una factura pendiente, además del botón manual "Verificar estado" y del chequeo posterior al envío de un pago. La consulta se pausa con la pestaña oculta y nunca se superpone a sí misma.
 
-## Architecture questions: resolved in ADR 0002
+## Preguntas de arquitectura: resueltas en ADR 0002
 
-- Which wallet(s) and QR/URI request formats are demonstrably supported? Stellar Wallets Kit (Freighter included) for in-app signing, plus a SEP-7 `web+stellar://pay` URI; the QR carries the full request in the URL fragment.
-- How are invoice references represented and correlated on-chain? A unique text memo (`ISQ` + 10 base32 characters, within the 28 byte limit).
-- Is persistent off-chain invoice storage needed? Yes, but only in the browser: `localStorage` keyed by merchant public key, with the QR payload as the cross-device path.
-- Which assets are practical for the Testnet demo? Native XLM only; issued assets and stablecoins are a roadmap item.
+- ¿Qué billetera(s) y formatos de solicitud QR/URI son soportados demostrablemente? Stellar Wallets Kit (Freighter incluido) para la firma dentro de la aplicación, más un URI SEP-7 `web+stellar://pay`; el QR lleva la solicitud completa en el fragmento de la URL.
+- ¿Cómo se representan y correlacionan las referencias de factura en cadena? Un memo de texto único (`ISQ` + 10 caracteres base32, dentro del límite de 28 bytes).
+- ¿Se necesita almacenamiento persistente de facturas fuera de cadena? Sí, pero solo en el navegador: `localStorage` claveado por la clave pública del comercio, con el payload del QR como vía entre dispositivos.
+- ¿Qué activos son prácticos para la demo de Testnet? Solo XLM nativo; los activos emitidos y las stablecoins son un ítem de hoja de ruta.

@@ -1,38 +1,38 @@
-# Security
+# Seguridad
 
-## Security posture
+## Postura de seguridad
 
-InterstellaQ is designed as non-custodial: customer authorization occurs in the customer's wallet, and the protocol must never request, receive, log, or store private keys or seed phrases.
+InterstellaQ está diseñado como no custodial: la autorización del cliente ocurre en la billetera del cliente, y el protocolo nunca debe solicitar, recibir, registrar ni almacenar claves privadas ni frases semilla.
 
-## Assets and trust boundaries
+## Activos y límites de confianza
 
-Assets include customer funds, merchant receiving accounts, invoice data, QR payloads, wallet handoff data, and settlement evidence. Trust boundaries exist between browser and wallet, browser and Stellar network/query provider, merchant input and displayed invoice, and any future contract or storage service.
+Los activos incluyen fondos del cliente, cuentas de recepción del comercio, datos de la factura, payloads QR, datos de entrega a la billetera y evidencia de liquidación. Los límites de confianza existen entre el navegador y la billetera, entre el navegador y la red/proveedor de consultas de Stellar, entre la entrada del comercio y la factura mostrada, y entre cualquier contrato o servicio de almacenamiento futuro.
 
-## Initial threat model
+## Modelo de amenazas inicial
 
-| Threat | Initial control |
+| Amenaza | Control inicial |
 |---|---|
-| QR substitution or tampering | Show recipient, asset, amount, and expiry in human-readable form before wallet authorization; bind verification to immutable invoice fields. |
-| Merchant-account impersonation | Require proof of control appropriate to the selected wallet/signing flow; do not treat a display name as ownership proof. |
-| Invoice replay or duplicate payment | Use unique invoice references, explicit lifecycle state, expiry, and idempotent verification; define any repeat-payment policy. |
-| Stale or fabricated settlement result | Query authoritative Testnet transaction/contract evidence and validate successful execution and all expected fields. |
-| Client-side state manipulation | Treat browser status as untrusted until independently derived from on-chain evidence. |
-| Secret leakage | Exclude secrets from UI collection, logs, analytics, source control, and error messages. |
+| Sustitución o manipulación del QR | Mostrar destinatario, activo, monto y expiración en forma legible antes de la autorización en la billetera; vincular la verificación a los campos inmutables de la factura. |
+| Suplantación de la cuenta del comercio | Exigir una prueba de control apropiada para el flujo de billetera/firma elegido; no tratar un nombre visual como prueba de propiedad. |
+| Reproducción de facturas o pago duplicado | Usar referencias únicas de factura, estado de ciclo de vida explícito, expiración y verificación idempotente; definir cualquier política de pago repetido. |
+| Resultado de liquidación obsoleto o fabricado | Consultar la evidencia autoritativa de transacciones de Testnet y validar la ejecución exitosa y todos los campos esperados. |
+| Manipulación de estado en el cliente | Tratar el estado del navegador como no confiable hasta derivarlo independientemente de la evidencia en cadena. |
+| Fuga de secretos | Excluir los secretos de la recopilación en la interfaz, los registros, la analítica, el control de versiones y los mensajes de error. |
 
-## Authorization requirements
+## Requisitos de autorización
 
-- Customer signatures must be created by the customer's wallet.
-- Merchant actions must be linked to control of the declared merchant account before their registration is trusted.
-- Any Soroban administrative capability must be explicit, minimal, and documented before deployment.
+- Las firmas del cliente deben ser creadas por la billetera del cliente.
+- Las acciones del comercio deben estar vinculadas al control de la cuenta de comercio declarada antes de que su registro sea de confianza.
+- Cualquier capacidad administrativa de Soroban debe ser explícita, mínima y documentada antes del despliegue.
 
-## Payment invariants
+## Invariantes de pago
 
-An invoice may be marked settled only if the selected successful Testnet evidence matches its recipient, asset, amount, expiry policy, and correlation rule. Expired invoices must not be represented as payable. A transaction for a different recipient, asset, or amount never settles the invoice.
+Una factura solo puede marcarse como liquidada si la evidencia exitosa seleccionada de Testnet coincide con su destinatario, activo, monto, política de expiración y regla de correlación. Las facturas vencidas no deben presentarse como pagables. Una transacción para un destinatario, activo o monto distinto nunca liquida la factura.
 
-## Replay protection
+## Protección contra replay
 
-Each invoice needs a unique identifier and expiry. Verification must be idempotent and prevent one transaction from silently satisfying multiple invoices unless such allocation is an explicit, tested protocol rule. The exact on-chain correlation format remains unresolved.
+Cada factura necesita un identificador único y una expiración. La verificación debe ser idempotente y evitar que una transacción satisfaga silenciosamente varias facturas, salvo que esa asignación sea una regla de protocolo explícita y probada. El formato de correlación en cadena está resuelto en [ADR 0002](adr/0002-invoice-correlation.md): un memo de texto único por factura, verificado contra la evidencia de Horizon.
 
-## Open decisions
+## Decisiones abiertas
 
-Wallet capability validation, reference encoding, merchant proof-of-control, external provider trust, contract authorization model, and incident reporting procedures require review before implementation or Testnet deployment.
+La validación de capacidades de billeteras, la confianza en proveedores externos, el modelo de autorización de contratos y los procedimientos de reporte de incidentes requieren revisión antes de un despliegue en producción. La codificación de la referencia y la prueba de control del comercio están resueltas en [ADR 0002](adr/0002-invoice-correlation.md).

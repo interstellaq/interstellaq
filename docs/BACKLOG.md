@@ -1,43 +1,43 @@
-# Implementation Backlog
+# Backlog de implementación
 
-Priority is a complete, demonstrable Testnet payment flow within the hackathon, with security validation ahead of optional expansion.
+La prioridad es un flujo de pago en Testnet completo y demostrable dentro del hackathon, con la validación de seguridad por delante de la expansión opcional.
 
-## Progress (2026-11-07)
+## Progreso (2026-11-07)
 
-- **M0 complete**: scaffold generated at `app/` (commit after the `kickoff` tag), Testnet wallet path validated with the Stellar Wallets Kit and a live payment, correlation decided in [ADR 0002](adr/0002-invoice-correlation.md).
-- **M1 complete**: registration with on-chain proof, invoice creation with expiry, QR request with embedded payload, wallet authorization, Horizon verification with stellar.expert evidence links, and automatic payment monitoring (a 20 s Horizon poll while any invoice is pending).
-- **M2 complete**: negative and expiry cases covered by the unit suite plus a live wrong-amount check (`npm run test:net`), security review reflected in ADR 0002 and docs/SECURITY.md, demo runbook in [docs/PITCH.md](PITCH.md) and the README, and delivered scope declared against the registered project description in [docs/PRD.md](PRD.md).
-- **M3 pending**: Soroban invoice contract assessment deferred; the scaffold example contracts remain under `app/contracts/` for that evaluation.
+- **M0 completo**: scaffold generado en `app/` (commit después de la etiqueta `kickoff`), ruta de billetera en Testnet validada con el Stellar Wallets Kit y un pago en vivo, correlación decidida en [ADR 0002](adr/0002-invoice-correlation.md).
+- **M1 completo**: registro con prueba en cadena, creación de facturas con expiración, solicitud QR con payload incrustado, autorización desde la billetera, verificación en Horizon con enlaces de evidencia en stellar.expert y monitoreo automático de pagos (una consulta a Horizon cada 20 s mientras hay una factura pendiente).
+- **M2 completo**: casos negativos y de expiración cubiertos por la suite unitaria más un chequeo en vivo con monto incorrecto (`npm run test:net`), revisión de seguridad reflejada en ADR 0002 y docs/SECURITY.md, guion de demo en [docs/PITCH.md](PITCH.md) y en el README, y alcance entregado declarado frente a la descripción registrada del proyecto en [docs/PRD.md](PRD.md).
+- **M3 pendiente**: evaluación del contrato de facturas en Soroban diferida; los contratos de ejemplo del scaffold siguen en `app/contracts/` para esa evaluación.
 
-## M0 — Foundations
+## M0 — Fundamentos
 
-| ID | Task | Depends on | Acceptance criteria |
+| ID | Tarea | Depende de | Criterios de aceptación |
 |---|---|---|---|
-| M0-01 | Generate the official Scaffold Stellar application | Repository initialization | Generated application runs without altering this documentation's stated scope. |
-| M0-02 | Validate Testnet wallet and request format | M0-01 | A chosen wallet/request path is documented and manually proven on Testnet. |
-| M0-03 | Decide payment correlation design | M0-02 | ADR or architecture update defines reference encoding and verification fields. |
+| M0-01 | Generar la aplicación oficial de Scaffold Stellar | Inicialización del repositorio | La aplicación generada se ejecuta sin alterar el alcance declarado en esta documentación. |
+| M0-02 | Validar la billetera y el formato de solicitud en Testnet | M0-01 | Una ruta de billetera/solicitud elegida está documentada y probada manualmente en Testnet. |
+| M0-03 | Decidir el diseño de correlación de pagos | M0-02 | Un ADR o una actualización de arquitectura definen la codificación de la referencia y los campos de verificación. |
 
-## M1 — Demonstrable payment request
+## M1 — Solicitud de pago demostrable
 
-| ID | Task | Depends on | Acceptance criteria |
+| ID | Tarea | Depende de | Criterios de aceptación |
 |---|---|---|---|
-| M1-01 | Implement merchant account connection and registration | M0-01, M0-02 | Merchant can prove/control selected Testnet account and see its registration state. |
-| M1-02 | Implement invoice creation and expiry | M0-03, M1-01 | Valid fixed-amount invoice has immutable recipient, asset, amount, reference, and expiry. |
-| M1-03 | Render QR request and review screen | M1-02 | QR and text details match the active invoice exactly. |
-| M1-04 | Add wallet authorization handoff | M1-03, M0-02 | Customer authorizes one Testnet payment without sharing a secret. |
-| M1-05 | Verify settlement and status | M1-04, M0-03 | Successful matching payment changes the invoice to settled with inspectable evidence. |
+| M1-01 | Implementar conexión y registro de la cuenta del comercio | M0-01, M0-02 | El comercio puede demostrar el control de la cuenta de Testnet elegida y ver su estado de registro. |
+| M1-02 | Implementar creación de facturas y expiración | M0-03, M1-01 | Una factura válida de monto fijo tiene destinatario, activo, monto, referencia y expiración inmutables. |
+| M1-03 | Renderizar la solicitud QR y la pantalla de revisión | M1-02 | El QR y los detalles en texto coinciden exactamente con la factura activa. |
+| M1-04 | Añadir la entrega de autorización a la billetera | M1-03, M0-02 | El cliente autoriza un pago en Testnet sin compartir ningún secreto. |
+| M1-05 | Verificar la liquidación y el estado | M1-04, M0-03 | Un pago coincidente y exitoso cambia la factura a liquidada con evidencia inspeccionable. |
 
-## M2 — Harden demo
+## M2 — Endurecer la demo
 
-| ID | Task | Depends on | Acceptance criteria |
+| ID | Tarea | Depende de | Criterios de aceptación |
 |---|---|---|---|
-| M2-01 | Test negative and expiry cases | M1-05 | Wrong amount, wrong recipient, failed, duplicate, and expired cases do not settle an invoice. |
-| M2-02 | Security review | M2-01 | Security checklist covers trust boundaries, authorization, replay, and secret handling. |
-| M2-03 | Demo script and documentation | M2-02 | A new reviewer can reproduce the Testnet flow from documented prerequisites. |
+| M2-01 | Probar casos negativos y de expiración | M1-05 | Monto incorrecto, destinatario incorrecto, pagos fallidos, duplicados y vencidos no liquidan una factura. |
+| M2-02 | Revisión de seguridad | M2-01 | La lista de verificación de seguridad cubre límites de confianza, autorización, replay y manejo de secretos. |
+| M2-03 | Guion de demo y documentación | M2-02 | Un revisor nuevo puede reproducir el flujo de Testnet a partir de los prerrequisitos documentados. |
 
-## M3 — Evaluate programmable extensions
+## M3 — Evaluar extensiones programables
 
-| ID | Task | Depends on | Acceptance criteria |
+| ID | Tarea | Depende de | Criterios de aceptación |
 |---|---|---|---|
-| M3-01 | Assess Soroban invoice contract | M2-03 | Decision records why native operations are insufficient or rejects the contract. |
-| M3-02 | Add generated contract client if adopted | M3-01 | Client calls are generated, tested, and consistent with contract authorization rules. |
+| M3-01 | Evaluar el contrato de facturas en Soroban | M2-03 | La decisión registra por qué las operaciones nativas son insuficientes o rechaza el contrato. |
+| M3-02 | Añadir el cliente de contratos generado, si se adopta | M3-01 | Las llamadas del cliente se generan, se prueban y son coherentes con las reglas de autorización del contrato. |

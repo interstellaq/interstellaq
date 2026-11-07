@@ -4,6 +4,8 @@ Rodeo de 5 minutos. Objetivo del jurado: qué hace, para quién y por qué
 Stellar, con una demo en vivo que termine en una transacción visible en
 stellar.expert.
 
+Demo desplegada: https://app-virid-sigma-44.vercel.app
+
 ## 0:00 a 1:00 - El problema
 
 Los comercios latinoamericanos que venden en línea o exportan reciben pagos

@@ -1,97 +1,104 @@
 # InterstellaQ
 
-> Open Payments Without Borders
+> Pagos abiertos sin fronteras
 
-InterstellaQ is an early-stage, non-custodial global merchant payment protocol for Stellar. Registered merchants create QR-code payment requests that customers authorize with compatible Stellar wallets.
+InterstellaQ es un protocolo de pagos globales para comercios, sin custodia, en etapa temprana para Stellar. Los comercios registrados crean solicitudes de pago por código QR que los clientes autorizan con billeteras Stellar compatibles.
 
-## Problem
+**Demo desplegada (Vercel):** https://app-virid-sigma-44.vercel.app
 
-Cross-border merchant payments remain fragmented, costly, and difficult to integrate. Merchants need a simple, interoperable request-and-settlement flow without taking custody of customer funds.
+## Problema
 
-## Proposed solution
+Los pagos transfronterizos entre comercios siguen siendo fragmentados, costosos y difíciles de integrar. Los comercios necesitan un flujo de solicitud y liquidación simple e interoperable sin custodiar los fondos de los clientes.
 
-InterstellaQ is a Stellar-native payment request protocol: a merchant publishes an invoice, a customer scans a QR request and authorizes a transfer in their wallet, and the merchant verifies settlement on Stellar. Soroban will be considered only where programmable protocol rules add value beyond native operations.
+## Solución propuesta
 
-## What is implemented (Código Cordillera, Genesis track)
+InterstellaQ es un protocolo de solicitud de pago nativo de Stellar: el comercio publica una factura, el cliente escanea una solicitud QR y autoriza una transferencia desde su billetera, y el comercio verifica la liquidación en Stellar. Soroban solo se considerará donde las reglas programables del protocolo aporten valor más allá de las operaciones nativas.
 
-The hackathon MVP runs on Stellar Testnet end to end:
+## Qué está implementado (Código Cordillera, pista Genesis)
 
-- Merchant registration with an on-chain proof of account control (signed no-op transaction, evidence linked on stellar.expert).
-- Fixed-amount invoices with unique text-memo references and expiry (15 min to 24 h).
-- QR payment request that embeds the full request in the URL, so it opens on any device without a backend, plus a SEP-7 `web+stellar://pay` handoff.
-- Customer payment through the connected wallet (Stellar Wallets Kit): the app builds the exact XLM payment, the wallet signs it, the app submits it.
-- Settlement verification against Horizon: successful transaction, matching memo reference, recipient, exact amount in stroops, non-native assets rejected, self-payments rejected, expired invoices never settle, and one transaction can never settle two invoices.
-- Automatic payment monitoring: the merchant panel and the invoice page poll Horizon every 20 seconds while an invoice is pending, so a confirmed payment flips the status without anyone pressing a button.
-- Invoice states: active, settled, expired, verification_failed, with public evidence links per settled invoice.
-- Spanish interface, keyboard-operable forms, and text equivalents for QR data.
+El MVP del hackathon funciona de extremo a extremo sobre Stellar Testnet:
 
-Deliberately out of scope for the MVP (see docs/PRD.md): custody, refunds, fiat ramps, KYC, issued assets, and a backend.
+- Registro de comercio con prueba en cadena del control de la cuenta (transacción sin efecto firmada, evidencia vinculada en stellar.expert).
+- Facturas de monto fijo con referencias únicas en memo de texto y expiración (15 minutos a 24 horas).
+- Solicitud de pago QR que incrusta la petición completa en la URL, por lo que se abre en cualquier dispositivo sin backend, además de una entrega SEP-7 `web+stellar://pay`.
+- Pago del cliente a través de la billetera conectada (Stellar Wallets Kit): la aplicación construye el pago exacto en XLM, la billetera lo firma y la aplicación lo envía.
+- Verificación de la liquidación contra Horizon: transacción exitosa, memo de referencia coincidente, destinatario, monto exacto en stroops, rechazo de activos no nativos, rechazo de autopagos, las facturas vencidas nunca se liquidan y una transacción nunca puede liquidar dos facturas.
+- Monitoreo automático de pagos: el panel del comercio y la página de la factura consultan Horizon cada 20 segundos mientras hay una factura pendiente, de modo que un pago confirmado cambia el estado sin que nadie presione un botón.
+- Estados de factura: active, settled, expired, verification_failed, con enlaces de evidencia pública por cada factura liquidada.
+- Interfaz en español, formularios operables con teclado y equivalentes de texto para los datos del QR.
 
-### Delivered scope vs. the registered project description
+Queda deliberadamente fuera del alcance del MVP (ver [docs/PRD.md](docs/PRD.md)): custodia, reembolsos, rampas de fiat, KYC, activos emitidos y un backend.
 
-Every functional feature of the registered description ("Gateway Global de Pagamentos por QR Code") is present: company registration, QR payment requests, Freighter-compatible wallet authorization, on-chain settlement, automatic payment monitoring, a merchant panel with history, and explorer links. Three deviations are deliberate and documented in [docs/PRD.md](docs/PRD.md) and [ADR 0002](docs/adr/0002-invoice-correlation.md):
+### Alcance entregado frente a la descripción registrada del proyecto
 
-- **Native XLM only**: stablecoins and other issued assets are a roadmap item, not part of the MVP.
-- **React + Vite, not Next.js**: the official Scaffold Stellar template; TypeScript throughout.
-- **No NestJS backend**: invoice state lives in the browser, which is what keeps the flow non-custodial.
+Toda la funcionalidad de la descripción registrada ("Gateway Global de Pagamentos por QR Code") está presente: registro de empresa, solicitudes de pago por QR, autorización desde billeteras compatibles con Freighter, liquidación en cadena, monitoreo automático de pagos, panel de comercio con historial y enlaces al explorador. Hay tres desviaciones deliberadas y documentadas en [docs/PRD.md](docs/PRD.md) y en [ADR 0002](docs/adr/0002-invoice-correlation.md):
 
-## How to run
+- **Solo XLM nativo**: las stablecoins y otros activos emitidos son un ítem de hoja de ruta, no parte del MVP.
+- **React + Vite, no Next.js**: la plantilla oficial de Scaffold Stellar; TypeScript en todo el proyecto.
+- **Sin backend NestJS**: el estado de las facturas vive en el navegador, y eso es lo que mantiene el flujo sin custodia.
 
-Prerequisites: Node.js 20+ and npm. The Stellar CLI, Rust, and Docker are only needed if you work with the scaffold's contract workspace (not required for the demo).
+## Cómo ejecutar
+
+Prerrequisitos: Node.js 20 o superior y npm. La Stellar CLI, Rust y Docker solo son necesarios si trabajas con el espacio de contratos del scaffold (no requerido para la demo).
 
 ```bash
+cd app
 npm install
 npm start
 ```
 
-Open http://localhost:5173, connect a Testnet wallet (for example Freighter set to Testnet), and use "Cargar cuenta" if the account needs test XLM.
+Abre http://localhost:5173, conecta una billetera de Testnet (por ejemplo Freighter en Testnet) y usa "Cargar cuenta" si la cuenta necesita XLM de prueba.
 
-### Tests
+### Pruebas
+
+Ejecutadas desde el directorio `app/`:
 
 ```bash
-npm test        # unit suite: reference, lifecycle, settlement rules, payloads
-npm run test:net  # live Testnet check: real payment settles, wrong amount does not
+npm test          # suite unitaria: referencias, ciclo de vida, reglas de liquidación, payloads
+npm run test:net  # chequeo en vivo sobre Testnet: un pago real liquida, un monto incorrecto no
 ```
 
-`npm run test:net` funds two throwaway accounts via friendbot, submits a real payment, and asserts the verification result against Horizon.
+`npm run test:net` financia dos cuentas desechables con friendbot, envía un pago real y comprueba el resultado de la verificación contra Horizon.
 
 ### Deploy
 
-The frontend builds as a static Vite app and deploys to Vercel from the `app/` directory:
+La aplicación estática de Vercel se construye y despliega desde el directorio `app/`:
+
+**Demo desplegada:** https://app-virid-sigma-44.vercel.app
 
 ```bash
 cd app
 vercel --prod
 ```
 
-`app/vercel.json` runs the workspace build (`npm run build`) and publishes its output: the Vercel project root is `app/`, so the output directory is `app/dist` (i.e. `app/app/dist` from the repository root).
+`app/vercel.json` ejecuta la construcción del workspace (`npm run build`) y publica su salida: la raíz del proyecto en Vercel es `app/`, por lo que el directorio de salida es `app/dist` (es decir, `app/app/dist` desde la raíz del repositorio).
 
-## Project layout
+## Estructura del proyecto
 
 ```
-app/                 Scaffold Stellar workspace (npm workspaces)
-  app/               React + Vite + TypeScript frontend (the demo)
-  app-lib/           Shared wallet, network, and formatting helpers
-  contracts/         Scaffold example contracts (unused by the MVP, kept for backlog M3)
-docs/                PRD, requirements, architecture, security, backlog, pitch
-docs/adr/            ADR 0001 (stack) and ADR 0002 (correlation, storage, handoff)
+app/                 Workspace de Scaffold Stellar (npm workspaces)
+  app/               Frontend React + Vite + TypeScript (la demo)
+  app-lib/           Helpers compartidos de billetera, red y formato
+  contracts/         Contratos de ejemplo del scaffold (no usados por el MVP, reservados para el backlog M3)
+docs/                PRD, requisitos, arquitectura, seguridad, backlog, pitch
+docs/adr/            ADR 0001 (stack) y ADR 0002 (correlación, almacenamiento, entrega a billetera)
 ```
 
-## Documentation
+## Documentación
 
-- [Product requirements](docs/PRD.md)
-- [Requirements](docs/REQUIREMENTS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Security](docs/SECURITY.md)
+- [Requisitos del producto](docs/PRD.md)
+- [Requisitos](docs/REQUIREMENTS.md)
+- [Arquitectura](docs/ARCHITECTURE.md)
+- [Seguridad](docs/SECURITY.md)
 - [Backlog](docs/BACKLOG.md)
-- [Pitch script](docs/PITCH.md)
-- [Technology-stack ADR](docs/adr/0001-technology-stack.md)
-- [Correlation, storage and handoff ADR](docs/adr/0002-invoice-correlation.md)
+- [Guion del pitch](docs/PITCH.md)
+- [ADR de stack tecnológico](docs/adr/0001-technology-stack.md)
+- [ADR de correlación, almacenamiento y entrega a billetera](docs/adr/0002-invoice-correlation.md)
 
-## Verification evidence
+## Evidencia de verificación
 
-Settlement and registration are public on Testnet. Every settled invoice and merchant registration links its transaction on [stellar.expert/Testnet](https://stellar.expert/testnet).
+La liquidación y el registro son públicos en Testnet. Cada factura liquidada y cada registro de comercio vincula su transacción en [stellar.expert/Testnet](https://stellar.expert/testnet).
 
-## Long-term vision
+## Visión a largo plazo
 
-Make open, interoperable merchant payments as approachable as Brazil's Pix while using Stellar for cross-border value movement and Soroban for carefully scoped programmable settlement capabilities.
+Hacer que los pagos abiertos e interoperables para comercios sean tan accesibles como el Pix de Brasil, usando Stellar para el movimiento transfronterizo de valor y Soroban para capacidades de liquidación programables cuidadosamente delimitadas.

@@ -1,31 +1,31 @@
-# ADR 0001: Proposed Technology Stack
+# ADR 0001: Stack tecnológico propuesto
 
-- Status: Accepted (remaining decisions resolved in [ADR 0002](0002-invoice-correlation.md))
-- Date: 2026-11-06
+- Estado: Aceptado (las decisiones restantes se resuelven en [ADR 0002](0002-invoice-correlation.md))
+- Fecha: 2026-11-06
 
-## Context
+## Contexto
 
-InterstellaQ needs a hackathon-appropriate, Stellar-native path to demonstrate a non-custodial merchant payment request on Testnet. This is an initial choice; no runtime code has been created.
+InterstellaQ necesita un camino apropiado para hackathon y nativo de Stellar para demostrar una solicitud de pago de comercio sin custodia en Testnet. Esta es una elección inicial; aún no se ha creado código de ejecución.
 
-## Decision
+## Decisión
 
-Propose Scaffold Stellar for future project generation; React, Vite, and TypeScript for the web interface; Stellar SDK facilities and Testnet for account/transaction interaction; Rust and Soroban only for behavior requiring on-chain programmability; and generated contract clients when a Soroban contract is adopted.
+Proponer Scaffold Stellar para la generación futura del proyecto; React, Vite y TypeScript para la interfaz web; las utilidades del SDK de Stellar y Testnet para la interacción con cuentas y transacciones; Rust y Soroban solo para comportamientos que requieran programabilidad en cadena; y clientes de contratos generados cuando se adopte un contrato Soroban.
 
-## Rationale
+## Justificación
 
-This combination aligns with the requested ecosystem, supports a fast browser-facing prototype, and keeps direct Stellar payments available when a contract would add no protocol value. Rust/Soroban provides a path for explicit, auditable programmable rules.
+Esta combinación se alinea con el ecosistema solicitado, soporta un prototipo rápido orientado al navegador y mantiene disponibles los pagos directos de Stellar cuando un contrato no aportaría valor al protocolo. Rust/Soroban ofrece un camino para reglas programables explícitas y auditables.
 
-## Alternatives considered
+## Alternativas consideradas
 
-- A fully custom frontend setup: more control, but duplicates official framework setup effort.
-- A contract-first design: rejected for now because basic payment requests may be handled with native Stellar operations.
-- A custodial backend and database: rejected because it expands trust, security, and operational scope without being needed for the initial flow.
-- EVM-compatible architecture: rejected because it does not reflect Stellar's account, transaction, and Soroban model.
+- Un setup de frontend totalmente personalizado: más control, pero duplica el esfuerzo del setup oficial del framework.
+- Un diseño contrato-primero: rechazado por ahora porque las solicitudes de pago básicas pueden resolverse con operaciones nativas de Stellar.
+- Un backend con custodia y base de datos: rechazado porque amplía el alcance de confianza, seguridad y operaciones sin ser necesario para el flujo inicial.
+- Una arquitectura compatible con EVM: rechazada porque no refleja el modelo de cuentas, transacciones y Soroban de Stellar.
 
-## Consequences
+## Consecuencias
 
-The team must validate wallet compatibility, Testnet asset mechanics, and transaction correlation before promising a specific QR or wallet path. If a contract is added, its authorization, storage, deployment, and generated client lifecycle become part of the build and review process.
+El equipo debe validar la compatibilidad de billeteras, la mecánica de activos en Testnet y la correlación de transacciones antes de prometer una ruta específica de QR o billetera. Si se añade un contrato, su autorización, almacenamiento, despliegue y el ciclo de vida del cliente generado pasan a formar parte del proceso de construcción y revisión.
 
-## Outstanding decisions
+## Decisiones pendientes
 
-All resolved in [ADR 0002](0002-invoice-correlation.md): wallets via the Stellar Wallets Kit (Freighter included) with a SEP-7 fallback; native XLM only; unique text memo correlation; browser `localStorage` keyed by merchant address; registration as a signed no-op transaction. Note that the registered project description also mentions a Next.js frontend, a NestJS backend, and stablecoin settlement; the delivered MVP uses React + Vite, no backend, and native XLM, for the reasons recorded in ADR 0002 and docs/PRD.md.
+Todas resueltas en [ADR 0002](0002-invoice-correlation.md): billeteras vía Stellar Wallets Kit (Freighter incluido) con respaldo SEP-7; solo XLM nativo; correlación por memo de texto único; `localStorage` del navegador claveado por la dirección del comercio; registro como transacción sin efecto firmada. Cabe señalar que la descripción registrada del proyecto también menciona un frontend Next.js, un backend NestJS y liquidación en stablecoins; el MVP entregado usa React + Vite, sin backend y con XLM nativo, por las razones registradas en el ADR 0002 y en docs/PRD.md.

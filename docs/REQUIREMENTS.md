@@ -1,27 +1,27 @@
-# Requirements
+# Requisitos
 
-## Functional requirements
+## Requisitos funcionales
 
-| ID | Requirement | Acceptance criteria |
+| ID | Requisito | Criterios de aceptación |
 |---|---|---|
-| FR-01 | Merchant registration | A Testnet account can submit required registration fields; its public address is displayed after confirmation. |
-| FR-02 | Invoice creation | Merchant can create an invoice containing recipient, asset identifier, amount, expiry, and unique reference; invalid or incomplete input is rejected. |
-| FR-03 | QR request | Each active invoice renders a QR payload that represents the reviewed payment request. |
-| FR-04 | Customer authorization | The flow presents a wallet-compatible request for customer approval; no customer private key is collected or persisted by InterstellaQ. |
-| FR-05 | Settlement verification | An invoice changes to settled only when on-chain evidence matches its recipient, asset, amount, and reference/approved correlation rule. |
-| FR-06 | Expiry handling | An invoice past its expiry cannot be presented as payable and is labelled expired. |
+| FR-01 | Registro de comercio | Una cuenta de Testnet puede enviar los campos de registro requeridos; su dirección pública se muestra después de la confirmación. |
+| FR-02 | Creación de factura | El comercio puede crear una factura con destinatario, identificador de activo, monto, expiración y referencia única; la entrada inválida o incompleta se rechaza. |
+| FR-03 | Solicitud QR | Cada factura activa renderiza un payload QR que representa la solicitud de pago revisada. |
+| FR-04 | Autorización del cliente | El flujo presenta una solicitud compatible con la billetera para la aprobación del cliente; InterstellaQ no recopila ni persiste ninguna clave privada del cliente. |
+| FR-05 | Verificación de la liquidación | Una factura cambia a liquidada solo cuando la evidencia en cadena coincide con su destinatario, activo, monto y regla de correlación aprobada. |
+| FR-06 | Manejo de expiración | Una factura vencida no puede presentarse como pagable y se etiqueta como expirada. |
 
-## Non-functional requirements
+## Requisitos no funcionales
 
-| ID | Requirement | Acceptance criteria |
+| ID | Requisito | Criterios de aceptación |
 |---|---|---|
-| NFR-01 | Network scope | Demo transactions and lookups use Stellar Testnet; network is shown in the user interface. |
-| NFR-02 | Non-custody | No private keys, seed phrases, or wallet signing secrets enter application storage, logs, or source control. |
-| NFR-03 | Integrity | Invoice records preserve the created recipient, asset, amount, expiry, and reference for verification. |
-| NFR-04 | Usability | Before wallet handoff, the customer can read recipient, asset, amount, and expiry. |
-| NFR-05 | Observability | Verification failures expose a safe, actionable status without revealing credentials or secrets. |
-| NFR-06 | Accessibility | The core form and status flow are keyboard operable and present text equivalents for QR data. |
+| NFR-01 | Alcance de red | Las transacciones y consultas de la demo usan Stellar Testnet; la red se muestra en la interfaz de usuario. |
+| NFR-02 | Sin custodia | Ninguna clave privada, frase semilla o secreto de firma de billetera entra en el almacenamiento, los registros o el control de versiones de la aplicación. |
+| NFR-03 | Integridad | Los registros de factura conservan el destinatario, activo, monto, expiración y referencia creados, para la verificación. |
+| NFR-04 | Usabilidad | Antes de la entrega a la billetera, el cliente puede leer destinatario, activo, monto y expiración. |
+| NFR-05 | Observabilidad | Los fallos de verificación exponen un estado seguro y accionable sin revelar credenciales ni secretos. |
+| NFR-06 | Accesibilidad | El formulario principal y el flujo de estados son operables con teclado y presentan equivalentes de texto para los datos del QR. |
 
-## Open requirements
+## Requisitos abiertos
 
-Resolved during implementation and recorded in [ADR 0002](adr/0002-invoice-correlation.md): the canonical QR payload is the invoice URL with the request in the fragment; the supported asset set is native XLM; invoice storage is browser `localStorage` keyed by merchant address; and correlation uses a unique text memo matched against Horizon evidence.
+Resueltos durante la implementación y registrados en [ADR 0002](adr/0002-invoice-correlation.md): el payload QR canónico es la URL de la factura con la solicitud en el fragmento; el conjunto de activos soportado es XLM nativo; el almacenamiento de facturas es `localStorage` del navegador claveado por la dirección del comercio; y la correlación usa un memo de texto único comparado contra la evidencia de Horizon.
