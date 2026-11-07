@@ -1,7 +1,7 @@
 import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
 import { nodePolyfills } from "vite-plugin-node-polyfills"
 import wasm from "vite-plugin-wasm"
+import { configDefaults, defineConfig } from "vitest/config"
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -15,6 +15,14 @@ export default defineConfig({
 		}),
 		wasm(),
 	],
+	test: {
+		// The live Testnet suite hits the public network and friendbot; it runs
+		// on demand through `npm run test:net` instead of the default suite.
+		exclude: [
+			...configDefaults.exclude,
+			"**/src/lib/__tests__/live.testnet.test.ts",
+		],
+	},
 	build: {
 		target: "esnext",
 	},

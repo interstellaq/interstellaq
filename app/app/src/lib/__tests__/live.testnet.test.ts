@@ -1,0 +1,82 @@
+/**
+ * Live Testnet check for the full payment path. Excluded from the default
+ * suite so it stays deterministic; run it explicitly with:
+ *
+ *   npm run test:net
+ */
+import { Keypair, Networks, TransactionBuilder } from "@stellar/stellar-sdk"
+import { describe, expect, it } from "vitest"
+import { createInvoice, type Invoice } from "../../domain/invoice"
+import { createReference } from "../reference"
+import {
+	buildPaymentTransaction,
+	submitSignedTransaction,
+	verifySettlement,
+} from "../stellar"
+
+const funded = async (keypair: Keypair): Promise<void> => {
+	const response = await fetch(
+		`https://friendbot.stellar.org/?addr=${keypair.publicKey()}`,
+	)
+	if (!response.ok) {
+		throw new Error(`friendbot failed with ${response.status}`)
+	}
+}
+
+describe("live Testnet settlement", () => {
+	it("builds, signs, submits and verifies a real payment", async () => {
+		const merchant = Keypair.random()
+		const customer = Keypair.random()
+		await funded(merchant)
+		await funded(customer)
+
+		const created = createInvoice({
+			recipient: merchant.publicKey(),
+			recipientName: "Prueba en vivo",
+			amount: "7.5000000",
+			expiryMinutes: 15,
+			reference: createReference(),
+		})
+		expect(created).not.toHaveProperty("error")
+		const invoice = created as Invoice
+
+		const unsigned = await buildPaymentTransaction(
+			customer.publicKey(),
+			invoice,
+		)
+		const transaction = TransactionBuilder.fromXDR(unsigned, Networks.TESTNET)
+		transaction.sign(customer)
+		const hash = await submitSignedTransaction(transaction.toXDR())
+		expect(hash).toHaveLength(64)
+
+		const result = await verifySettlement(invoice)
+		expect(result).toEqual({ settled: true, txHash: hash })
+	}, 90_000)
+
+	it("does not settle an invoice when the amount differs", async () => {
+		const merchant = Keypair.random()
+		const customer = Keypair.random()
+		await funded(merchant)
+		await funded(customer)
+
+		const created = createInvoice({
+			recipient: merchant.publicKey(),
+			amount: "9.2500000",
+			expiryMinutes: 15,
+			reference: createReference(),
+		})
+		const invoice = created as Invoice
+
+		const wrongAmount: Invoice = { ...invoice, amount: "9.2600000" }
+		const unsigned = await buildPaymentTransaction(
+			customer.publicKey(),
+			wrongAmount,
+		)
+		const transaction = TransactionBuilder.fromXDR(unsigned, Networks.TESTNET)
+		transaction.sign(customer)
+		await submitSignedTransaction(transaction.toXDR())
+
+		const result = await verifySettlement(invoice)
+		expect(result).toEqual({ settled: false, reason: "no_match" })
+	}, 90_000)
+})
