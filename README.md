@@ -97,7 +97,7 @@ docs/adr/            ADR 0001 (stack) y ADR 0002 (correlación, almacenamiento, 
 
 ## Evidencia de verificación
 
-La liquidación y el registro son públicos en Testnet. Cada factura liquidada y cada registro de comercio vincula su transacción en [stellar.expert/Testnet](https://stellar.expert/testnet).
+La liquidación y el registro son públicos en Testnet. Cada factura liquidada y cada registro de comercio vincula su transacción en [stellar.expert, explorador de Testnet](https://stellar.expert/explorer/testnet).
 
 ## Visión a largo plazo
 

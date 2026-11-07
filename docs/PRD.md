@@ -43,7 +43,7 @@ La descripción registrada del proyecto ("Gateway Global de Pagamentos por QR Co
 | Liquidación en Stellar Testnet | Entregado | Operaciones de pago nativas enviadas y confirmadas en cadena |
 | Verificación de pagos y actualización de estados | Entregado | Verificación en Horizon automática cada 20 s mientras la factura está pendiente, además del botón y del chequeo posterior al pago |
 | Panel de comercio con historial y confirmaciones | Entregado | Lista de facturas, estados y enlaces de evidencia en stellar.expert |
-| Transparencia vía exploradores | Entregado | Cada liquidación y cada registro se vincula a stellar.expert/Testnet |
+| Transparencia vía exploradores | Entregado | Cada liquidación y cada registro se vincula en stellar.expert (explorador de Testnet) |
 | Liquidación en stablecoins / activos emitidos | No entregado | Solo XLM nativo (ADR 0002); los activos emitidos son un ítem de hoja de ruta |
 | Contratos Soroban para lógica programable | No usado | Solo donde sea necesario; el MVP no los necesita, espacio reservado para M3 |
 | Frontend Next.js | No entregado | React + Vite (plantilla oficial de Scaffold Stellar) |

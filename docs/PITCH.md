@@ -63,7 +63,7 @@ el monitoreo automático vuelve a intentarlo en el siguiente ciclo.
   recibe los fondos directamente.
 - SEP-7 para entrega de pago a wallets compatibles.
 - Evidencia pública: cada liquidación y cada registro se puede abrir en
-  stellar.expert/Testnet.
+  stellar.expert (explorador de Testnet).
 
 ## 4:15 a 5:00 - Usuario, evidencia y siguientes pasos
 

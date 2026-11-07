@@ -53,7 +53,7 @@ El registro envía una operación `bumpSequence` a la secuencia actual de la cue
 
 ## Consecuencias
 
-- La evidencia de liquidación y la prueba de registro son públicas e inspeccionables en stellar.expert/Testnet.
+- La evidencia de liquidación y la prueba de registro son públicas e inspeccionables en stellar.expert (explorador de Testnet).
 - El panel del comercio y la página de la factura consultan Horizon cada 20 segundos mientras hay una factura pendiente, de modo que un pago confirmado actualiza el estado sin acción del usuario. La consulta se pausa con la pestaña oculta, nunca ejecuta dos consultas a la vez y un chequeo fallido deja el estado sin cambios.
 - La demo depende de la disponibilidad de Horizon Testnet; los fallos de verificación se presentan como un estado accionable en lugar de un cambio en la factura.
 - El estado de la factura no sobrevive a un borrado del navegador ni se mueve entre dispositivos salvo a través del payload del QR; un backend compartido es una decisión posterior al MVP.
