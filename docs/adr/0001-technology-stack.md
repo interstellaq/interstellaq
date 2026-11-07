@@ -1,6 +1,6 @@
 # ADR 0001: Proposed Technology Stack
 
-- Status: Proposed
+- Status: Accepted (remaining decisions resolved in [ADR 0002](0002-invoice-correlation.md))
 - Date: 2026-11-06
 
 ## Context
@@ -28,8 +28,4 @@ The team must validate wallet compatibility, Testnet asset mechanics, and transa
 
 ## Outstanding decisions
 
-- Supported wallet(s) and evidence of QR/SEP-7 compatibility
-- Testnet asset selection and trustline handling
-- Invoice reference/correlation mechanism
-- Minimal persistent invoice-state design
-- Whether merchant registration needs an on-chain registry
+All resolved in [ADR 0002](0002-invoice-correlation.md): wallets via the Stellar Wallets Kit (Freighter included) with a SEP-7 fallback; native XLM only; unique text memo correlation; browser `localStorage` keyed by merchant address; registration as a signed no-op transaction. Note that the registered project description also mentions a Next.js frontend, a NestJS backend, and stablecoin settlement; the delivered MVP uses React + Vite, no backend, and native XLM, for the reasons recorded in ADR 0002 and docs/PRD.md.

@@ -26,6 +26,15 @@ The hackathon MVP runs on Stellar Testnet end to end:
 
 Deliberately out of scope for the MVP (see docs/PRD.md): custody, refunds, fiat ramps, KYC, issued assets, and a backend.
 
+### Delivered scope vs. the registered project description
+
+Every functional feature of the registered description ("Gateway Global de Pagamentos por QR Code") is present: company registration, QR payment requests, Freighter-compatible wallet authorization, on-chain settlement, payment verification, a merchant panel with history, and explorer links. Four deviations are deliberate and documented in [docs/PRD.md](docs/PRD.md) and [ADR 0002](docs/adr/0002-invoice-correlation.md):
+
+- **Native XLM only**: stablecoins and other issued assets are a roadmap item, not part of the MVP.
+- **React + Vite, not Next.js**: the official Scaffold Stellar template; TypeScript throughout.
+- **No NestJS backend**: invoice state lives in the browser, which is what keeps the flow non-custodial.
+- **Verification on demand**: settlement is checked when the merchant presses "Verificar estado" or right after a payment, instead of a continuous background monitor.
+
 ## How to run
 
 Prerequisites: Node.js 20+ and npm. The Stellar CLI, Rust, and Docker are only needed if you work with the scaffold's contract workspace (not required for the demo).
@@ -55,7 +64,7 @@ cd app
 vercel --prod
 ```
 
-`app/vercel.json` points the build at the workspace (`npm run build`, output `app/app/dist`).
+`app/vercel.json` runs the workspace build (`npm run build`) and publishes its output: the Vercel project root is `app/`, so the output directory is `app/dist` (i.e. `app/app/dist` from the repository root).
 
 ## Project layout
 

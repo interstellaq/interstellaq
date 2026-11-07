@@ -68,7 +68,13 @@ un error de red deja el estado intacto, nunca inventa una liquidación.
 - Evidencia de esta edición: flujo completo verificado sobre Testnet, con
   pruebas automatizadas que liquidan un pago real y que rechazan un pago con
   monto incorrecto (`npm run test:net`).
+- Alcance declarado frente al alcance entregado, con transparencia: todos los
+  flujos funcionales de la descripción están implementados, y el MVP se
+  limita a XLM nativo (sin stablecoins), usa React con Vite en lugar de
+  Next.js, no tiene backend NestJS porque el estado vive en el navegador, y
+  verifica la liquidación bajo demanda en lugar de monitorear en segundo
+  plano. Cada desviación está registrada en `docs/PRD.md` y en el ADR 0002.
 - Siguientes pasos con fechas: activos emitidos y cotizaciones multi-asset
   (post hackathon), persistencia compartida para facturas multi-dispositivo,
-  y evaluación de un contrato Soroban para reglas de liquidación
-  programables (backlog M3).
+  monitoreo continuo de pagos, y evaluación de un contrato Soroban para
+  reglas de liquidación programables (backlog M3).

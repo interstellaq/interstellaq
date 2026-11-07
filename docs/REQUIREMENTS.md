@@ -24,4 +24,4 @@
 
 ## Open requirements
 
-The canonical QR payload, supported asset set, durable invoice storage approach, and exact settlement correlation mechanism require technical validation before implementation.
+Resolved during implementation and recorded in [ADR 0002](adr/0002-invoice-correlation.md): the canonical QR payload is the invoice URL with the request in the fragment; the supported asset set is native XLM; invoice storage is browser `localStorage` keyed by merchant address; and correlation uses a unique text memo matched against Horizon evidence.

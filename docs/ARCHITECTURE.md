@@ -2,7 +2,7 @@
 
 ## Status and principles
 
-This document separates confirmed choices from proposals. Confirmed: React/Vite/TypeScript frontend, Rust/Soroban where contracts are needed, Scaffold Stellar as the future development framework, and Stellar Testnet for the MVP. No application structure has yet been generated.
+This document separates confirmed choices from proposals. Confirmed: React/Vite/TypeScript frontend, Rust/Soroban where contracts are needed, Scaffold Stellar as the development framework, and Stellar Testnet for the MVP. The application is generated at `app/` and the delivered decisions are recorded in [ADR 0002](adr/0002-invoice-correlation.md).
 
 ## Confirmed decisions
 
@@ -23,31 +23,31 @@ This document separates confirmed choices from proposals. Confirmed: React/Vite/
 
 ### Frontend
 
-The future React application would provide merchant screens, invoice lifecycle views, QR display, wallet handoff, and status. Scaffold Stellar-generated clients would be used if a Soroban contract is introduced.
+The React application at `app/app/` provides merchant screens, invoice lifecycle views, QR display, wallet handoff, and status. Scaffold Stellar-generated clients would be used if a Soroban contract is introduced.
 
 ### Stellar accounts, assets, and transfers
 
-The first implementation should use standard Stellar operations for direct payments when this preserves the required invoice correlation and verification semantics. Supported assets and trustline handling are unresolved. Native XLM requires no trustline; issued assets do.
+The implementation uses standard Stellar operations for direct payments, which preserves the required invoice correlation and verification semantics. The MVP settles in native XLM: no trustline is needed. Issued assets (including stablecoins) require trustline handling and are deferred to the roadmap.
 
 ### Soroban contracts
 
-Potential—not yet confirmed—uses include durable invoice state, atomic programmable settlement rules, or merchant policy enforcement. Contracts are not assumed for simple direct payment requests. Contract authorization, storage costs, and wallet support must be evaluated before adopting this route.
+Potential uses include durable invoice state, atomic programmable settlement rules, or merchant policy enforcement. The MVP needs none of them, so no contract is deployed; the workspace under `app/contracts/` is kept for backlog M3. Contract authorization, storage costs, and wallet support must be evaluated before adopting this route.
 
 ### Merchant registration
 
-The storage and authority model is unresolved. A minimal MVP may represent registration as a user-controlled public account plus off-chain UI metadata; an on-chain registry requires a justified discovery or trust need.
+Delivered as a signed no-op transaction (sequence bump) with a fixed memo, which proves control of the public key on chain, plus off-chain display metadata in browser storage. No central registry.
 
 ### Invoice lifecycle
 
-Proposed states: `draft`, `active`, `payment_submitted` (optional), `settled`, `expired`, and `verification_failed`. The authoritative transition to `settled` must be based on verified Testnet evidence, not a client assertion.
+Delivered states: `active`, `settled`, `expired`, and `verification_failed`. The transition to `settled` is based on verified Testnet evidence, never on a client assertion.
 
 ### Settlement verification
 
-Verification must match the chosen payment semantics: recipient, asset, amount, successful result, and reference/correlation rule. Whether this uses transaction memo conventions, Soroban events, or another supported mechanism remains an open decision.
+Delivered: a Horizon query over the recipient's recent transactions, filtered by the invoice's unique text memo, then matched against recipient, native asset, exact amount in stroops, and a source account different from the recipient. Failed checks leave the stored status untouched.
 
-## Open architecture questions
+## Architecture questions: resolved in ADR 0002
 
-- Which wallet(s) and QR/URI request formats will be demonstrably supported?
-- How will invoice references be safely represented and correlated on-chain?
-- Is persistent off-chain invoice storage needed for the MVP, and if so, what is the minimum trust-preserving design?
-- Which asset(s) are practical for the Testnet demo?
+- Which wallet(s) and QR/URI request formats are demonstrably supported? Stellar Wallets Kit (Freighter included) for in-app signing, plus a SEP-7 `web+stellar://pay` URI; the QR carries the full request in the URL fragment.
+- How are invoice references represented and correlated on-chain? A unique text memo (`ISQ` + 10 base32 characters, within the 28 byte limit).
+- Is persistent off-chain invoice storage needed? Yes, but only in the browser: `localStorage` keyed by merchant public key, with the QR payload as the cross-device path.
+- Which assets are practical for the Testnet demo? Native XLM only; issued assets and stablecoins are a roadmap item.
