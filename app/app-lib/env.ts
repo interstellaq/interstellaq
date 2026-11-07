@@ -1,5 +1,4 @@
 import { Networks } from "@creit.tech/stellar-wallets-kit"
-import { options } from "./clients"
 
 type NetworkType = "mainnet" | "testnet" | "futurenet" | "local"
 
@@ -25,26 +24,17 @@ const KNOWN_NETWORKS = {
 type StellarNetwork = (typeof KNOWN_NETWORKS)[keyof typeof KNOWN_NETWORKS]
 
 /**
- * The network the generated clients were built for. `stellar scaffold` writes
- * `options` into `clients/index.ts` from the network selected in
- * `scaffold.yml`, so the frontend can never disagree with the contracts it
- * calls. An unrecognized passphrase is an error rather than a silent fallback
- * to the local network.
+ * The app is fixed to Stellar Testnet for the hackathon MVP (README,
+ * "Hackathon status"). These values are declared directly instead of being
+ * read from the generated contract clients, so the frontend builds and runs
+ * without a contract workspace: the MVP pays with native XLM operations and
+ * never calls a Soroban contract (docs/adr/0002-invoice-correlation.md).
  */
-const stellarNetworkFor = (passphrase: string): StellarNetwork => {
-	if (passphrase in KNOWN_NETWORKS) {
-		return KNOWN_NETWORKS[passphrase as keyof typeof KNOWN_NETWORKS]
-	}
-	throw new Error(
-		`Unsupported network passphrase in generated clients: "${passphrase}". app-lib supports the local, testnet, futurenet, and mainnet passphrases.`,
-	)
-}
-
-export const networkPassphrase = options.networkPassphrase
-export const rpcUrl = options.rpcUrl
+export const networkPassphrase = Networks.TESTNET
+export const rpcUrl = "https://soroban-testnet.stellar.org"
 // Plain HTTP is only allowed where `scaffold.yml` allows it (local by default)
-export const allowHttp = options.allowHttp
-export const stellarNetwork = stellarNetworkFor(networkPassphrase)
+export const allowHttp = false
+export const stellarNetwork = "TESTNET" as StellarNetwork
 
 const stellarEncode = (str: string) => {
 	return str.replace(/\//g, "//").replace(/;/g, "/;")
