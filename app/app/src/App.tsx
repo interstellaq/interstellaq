@@ -45,14 +45,14 @@ const AppLayout = () => (
 		<footer className={styles.footer}>
 			<nav className={styles.footerNav}>
 				<a
-					href="https://stellar.org/developers/edps/sep-0007"
+					href="https://developers.stellar.org/docs/build/apps/wallet/sep7"
 					target="_blank"
 					rel="noreferrer"
 				>
 					SEP-7
 				</a>
 				<a
-					href="https://stellar.expert/testnet"
+					href="https://stellar.expert/explorer/testnet"
 					target="_blank"
 					rel="noreferrer"
 				>

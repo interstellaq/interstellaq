@@ -24,7 +24,7 @@ export default function Home() {
 						Crear una factura
 					</Link>
 					<a
-						href="https://stellar.expert/testnet"
+						href="https://stellar.expert/explorer/testnet"
 						target="_blank"
 						rel="noreferrer"
 						className="iq-btn iq-btn--ghost"
