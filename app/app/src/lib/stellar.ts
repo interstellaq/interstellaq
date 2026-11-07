@@ -21,13 +21,14 @@ import {
 	Operation,
 	TransactionBuilder,
 } from "@stellar/stellar-sdk"
-import { type Invoice, toStroops } from "../domain/invoice"
+import { type Invoice, toStroops, validateInvoiceData } from "../domain/invoice"
 
 /** Stellar Testnet Horizon (NFR-01). */
 export const HORIZON_URL = "https://horizon-testnet.stellar.org"
 
 /** Explorer base for Testnet transaction evidence shown to the user. */
-export const STELLAR_EXPERT_TX_BASE = "https://stellar.expert/explorer/testnet/tx/"
+export const STELLAR_EXPERT_TX_BASE =
+	"https://stellar.expert/explorer/testnet/tx/"
 
 export const horizon = new Horizon.Server(HORIZON_URL)
 
@@ -167,6 +168,8 @@ export async function buildPaymentTransaction(
 	payer: string,
 	invoice: Invoice,
 ): Promise<string> {
+	const validationError = validateInvoiceData(invoice, { requireId: true })
+	if (validationError) throw new Error(validationError)
 	const account = await horizon.loadAccount(payer)
 	const transaction = new TransactionBuilder(account, {
 		fee: BASE_FEE,

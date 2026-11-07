@@ -9,11 +9,12 @@ import {
 } from "../handoff"
 
 const NOW = 1_760_000_000_000
+const RECIPIENT = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 
 const makeInvoice = (overrides: Partial<Invoice> = {}): Invoice => ({
 	id: "2f6b5f8e-0000-4000-8000-000000000001",
 	reference: "ISQABCDEFGHIJ",
-	recipient: "GMERCHANTADDRESSEXAMPLE0000000000000000000000000000",
+	recipient: RECIPIENT,
 	recipientName: "Café Andes",
 	asset: "XLM",
 	amount: "12.5000000",
@@ -46,6 +47,20 @@ describe("invoice payload codec", () => {
 	it("rejects a non-XLM asset in a tampered payload", () => {
 		const tampered = { ...toPayload(makeInvoice()), asset: "USDC" }
 		expect(decodePayload(encodePayload(tampered as never))).toBeNull()
+	})
+
+	it("rejects structurally invalid QR data", () => {
+		const invoice = makeInvoice()
+		for (const tampered of [
+			{ ...toPayload(invoice), recipient: "GABC" },
+			{ ...toPayload(invoice), reference: "invalid" },
+			{ ...toPayload(invoice), amount: "0" },
+			{ ...toPayload(invoice), expiresAt: invoice.createdAt },
+			{ ...toPayload(invoice), expiresAt: invoice.createdAt + 17 * 60_000 },
+			{ ...toPayload(invoice), id: "not-a-uuid" },
+		]) {
+			expect(decodePayload(encodePayload(tampered))).toBeNull()
+		}
 	})
 })
 
