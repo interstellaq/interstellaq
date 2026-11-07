@@ -4,9 +4,10 @@ La prioridad es un flujo de pago en Testnet completo y demostrable dentro del ha
 
 ## Progreso (2026-11-07)
 
-- **M0 completo**: scaffold generado en `app/` (commit después de la etiqueta `kickoff`), ruta de billetera en Testnet validada con el Stellar Wallets Kit y un pago en vivo, correlación decidida en [ADR 0002](adr/0002-invoice-correlation.md).
-- **M1 completo**: registro con prueba en cadena, creación de facturas con expiración, solicitud QR con payload incrustado, autorización desde la billetera, verificación en Horizon con enlaces de evidencia en stellar.expert y monitoreo automático de pagos (una consulta a Horizon cada 20 s mientras hay una factura pendiente).
-- **M2 completo**: casos negativos y de expiración cubiertos por la suite unitaria más un chequeo en vivo con monto incorrecto (`npm run test:net`), revisión de seguridad reflejada en ADR 0002 y docs/SECURITY.md, guion de demo en [docs/PITCH.md](PITCH.md) y en el README, y alcance entregado declarado frente a la descripción registrada del proyecto en [docs/PRD.md](PRD.md).
+- Los estados de progreso registran implementación y documentación existentes; no sustituyen la verificación reproducible de todos los criterios de aceptación.
+- **M0 implementado y documentado**: scaffold generado en `app/` (commit después de la etiqueta `kickoff`), ruta de billetera en Testnet registrada con el Stellar Wallets Kit y un pago en vivo, correlación decidida en [ADR 0002](adr/0002-invoice-correlation.md). La compatibilidad de billetera y formato de solicitud requiere evidencia verificable.
+- **M1 implementado**: registro con prueba en cadena, creación de facturas con expiración, solicitud QR con payload incrustado, autorización desde la billetera, verificación en Horizon con enlaces de evidencia en stellar.expert y monitoreo automático de pagos (una consulta a Horizon cada 20 s mientras hay una factura pendiente). La aceptación integral permanece sujeta a verificación frente a sus criterios.
+- **M2 implementado y documentado parcialmente**: casos negativos y de expiración registrados en la suite unitaria más un chequeo en vivo con monto incorrecto (`npm run test:net`), revisión de seguridad reflejada en ADR 0002 y docs/SECURITY.md, guion de demo en [docs/PITCH.md](PITCH.md) y en el README, y alcance entregado declarado frente a la descripción registrada del proyecto en [docs/PRD.md](PRD.md). La cobertura completa de criterios requiere verificación adicional.
 - **M3 pendiente**: evaluación del contrato de facturas en Soroban diferida; los contratos de ejemplo del scaffold siguen en `app/contracts/` para esa evaluación.
 
 ## M0 — Fundamentos
