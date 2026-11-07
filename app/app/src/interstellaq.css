@@ -1,0 +1,310 @@
+/* InterstellaQ application styles. Global classes prefixed with iq- so they
+   never collide with the shared scaffold classes in app-lib/styles.css. */
+
+.iq-home {
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+}
+
+.iq-hero {
+	padding: 3rem 0 1rem;
+	max-width: 760px;
+}
+
+.iq-hero__tag {
+	color: var(--color-accent);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	font-size: 0.85rem;
+	margin: 0 0 0.75rem;
+}
+
+.iq-hero h1 {
+	font-size: clamp(1.8rem, 4vw, 2.75rem);
+	line-height: 1.15;
+	margin: 0 0 1rem;
+}
+
+.iq-hero__lead {
+	font-size: 1.1rem;
+	color: var(--color-text-muted);
+	margin: 0 0 1.5rem;
+}
+
+.iq-hero__actions {
+	display: flex;
+	gap: 1rem;
+	flex-wrap: wrap;
+	margin-bottom: 1rem;
+}
+
+.iq-btn {
+	display: inline-block;
+	background: var(--color-accent);
+	color: var(--color-accent-contrast);
+	border: 1px solid var(--color-accent);
+	border-radius: var(--radius);
+	padding: 0.6rem 1.2rem;
+	font-weight: 600;
+	text-decoration: none;
+	cursor: pointer;
+	font-size: 0.95rem;
+}
+
+.iq-btn:hover {
+	filter: brightness(1.1);
+}
+
+.iq-btn--ghost {
+	background: transparent;
+	color: var(--color-accent);
+}
+
+.iq-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 1.5rem;
+}
+
+.iq-steps ol {
+	padding-left: 1.25rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-bottom: 1.5rem;
+}
+
+.iq-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+
+.iq-muted {
+	color: var(--color-text-muted);
+	font-size: 0.9rem;
+}
+
+.iq-error {
+	color: var(--color-error);
+	font-size: 0.9rem;
+	margin: 0.5rem 0;
+}
+
+.iq-warning {
+	color: var(--color-warning);
+	font-size: 0.9rem;
+	margin: 0.75rem 0 0;
+}
+
+.iq-note {
+	color: var(--color-text-muted);
+	font-size: 0.95rem;
+}
+
+.iq-link {
+	color: var(--color-accent);
+}
+
+.iq-form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	max-width: 520px;
+}
+
+.iq-form h2,
+.iq-pay h2,
+.iq-detail h2,
+.card h2 {
+	margin-top: 0;
+}
+
+.iq-form label {
+	font-size: 0.875rem;
+	color: var(--color-text-muted);
+	margin-top: 0.5rem;
+}
+
+.iq-form select {
+	font-family: inherit;
+	font-size: 1rem;
+	padding: 0.5rem 0.75rem;
+	border-radius: var(--radius);
+	border: 1px solid var(--color-border);
+	background: var(--color-bg);
+	color: var(--color-text);
+	width: 100%;
+}
+
+.iq-form button {
+	margin-top: 0.75rem;
+	align-self: flex-start;
+}
+
+.iq-badge {
+	display: inline-block;
+	padding: 0.2rem 0.6rem;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	border: 1px solid currentColor;
+	white-space: nowrap;
+}
+
+.iq-badge--active {
+	color: var(--color-accent);
+}
+
+.iq-badge--settled {
+	color: var(--color-success);
+}
+
+.iq-badge--expired {
+	color: var(--color-text-muted);
+}
+
+.iq-badge--verification_failed {
+	color: var(--color-warning);
+}
+
+.iq-qr {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.75rem;
+	text-align: center;
+}
+
+.iq-qr__caption {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--color-text-muted);
+}
+
+.iq-qr__text {
+	font-size: 0.7rem;
+	word-break: break-all;
+	text-align: left;
+	max-width: 100%;
+}
+
+.iq-invoice-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.iq-invoice-list__item {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	flex-wrap: wrap;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	padding: 0.75rem 1rem;
+}
+
+.iq-invoice-list__main,
+.iq-invoice-list__side {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.iq-invoice-list__side {
+	align-items: flex-end;
+	text-align: right;
+}
+
+.iq-detail {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+
+.iq-detail__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+}
+
+.iq-detail__amount {
+	font-size: 2rem;
+	font-weight: 700;
+	margin: 0;
+}
+
+.iq-detail__amount span {
+	color: var(--color-accent);
+	font-size: 1.1rem;
+}
+
+.iq-detail__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 1.5rem;
+}
+
+.iq-details {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 0.4rem 1rem;
+	margin: 0;
+}
+
+.iq-details dt {
+	color: var(--color-text-muted);
+	font-size: 0.875rem;
+}
+
+.iq-details dd {
+	margin: 0;
+	font-size: 0.95rem;
+	word-break: break-word;
+}
+
+.iq-countdown {
+	color: var(--color-accent);
+	font-size: 0.85rem;
+}
+
+.iq-detail__actions {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	margin-top: 1rem;
+}
+
+.iq-evidence {
+	font-size: 0.9rem;
+	margin: 0.75rem 0 0;
+}
+
+.iq-pay p {
+	margin-top: 0;
+}
+
+.iq-empty,
+.iq-onboarding {
+	text-align: center;
+	padding: 2.5rem 1.5rem;
+}
+
+.iq-merchant-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.iq-merchant-header h1 {
+	margin: 0;
+}

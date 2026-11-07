@@ -25,7 +25,7 @@ export async function fundAccount(
 	try {
 		const response = await fetch(getFriendbotUrl(address))
 		if (response.ok) {
-			return { ok: true, message: "Account funded successfully!" }
+			return { ok: true, message: "Cuenta financiada correctamente." }
 		}
 		const body: unknown = await response.json()
 		if (
@@ -34,10 +34,19 @@ export async function fundAccount(
 			"detail" in body &&
 			typeof body.detail === "string"
 		) {
-			return { ok: false, message: `Error funding account: ${body.detail}` }
+			return {
+				ok: false,
+				message: `Error al financiar la cuenta: ${body.detail}`,
+			}
 		}
-		return { ok: false, message: "Error funding account: Unknown error" }
+		return {
+			ok: false,
+			message: "Error al financiar la cuenta. Intenta de nuevo.",
+		}
 	} catch {
-		return { ok: false, message: "Error funding account. Please try again." }
+		return {
+			ok: false,
+			message: "Error al financiar la cuenta. Intenta de nuevo.",
+		}
 	}
 }

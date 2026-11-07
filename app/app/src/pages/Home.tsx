@@ -1,104 +1,91 @@
-import { labPrefix } from "@stellar-scaffold/app-lib"
-import React from "react"
 import { Link } from "react-router-dom"
-import { GuessTheNumber } from "../components/GuessTheNumber"
-import styles from "./Home.module.css"
 
-const Home: React.FC = () => (
-	<div className={styles.Home}>
-		<div>
-			<h1>Yay! You&apos;re on Stellar!</h1>
-			<p>
-				A local development template designed to help you build dApps on the
-				Stellar network. This environment lets you easily test wallet
-				connections, smart contract interactions, transaction verifications,
-				etc.{" "}
-				<Link to="https://scaffoldstellar.org/docs/intro" target="_blank">
-					View docs
-				</Link>
-			</p>
-		</div>
-
-		<div className="card">
-			<h2>Sample Contracts</h2>
-			<p>
-				<strong>Guess The Number:</strong> Interact with the sample contract
-				from the{" "}
-				<Link
-					to="https://scaffoldstellar.org/docs/tutorial/overview"
-					target="_blank"
-				>
-					Scaffold Tutorial
-				</Link>{" "}
-				using an automatically generated contract client.
-			</p>
-			<GuessTheNumber />
-			<p>Or take a look at other sample contracts to get you started:</p>
-			<nav className={styles.contractNav}>
-				<a
-					href="https://github.com/OpenZeppelin/stellar-contracts/tree/main/examples"
-					target="_blank"
-					rel="noreferrer"
-				>
-					OpenZeppelin sample contracts
-				</a>
-				<a
-					href="https://github.com/stellar/soroban-examples"
-					target="_blank"
-					rel="noreferrer"
-				>
-					Soroban sample contracts
-				</a>
-			</nav>
-		</div>
-
-		<div className="card">
-			<h2>Start Building</h2>
-			<ol>
-				<li>
-					Add your contract under <code>/src/contracts</code>
-				</li>
-				<li>
-					Contracts are built by Scaffold when you run <code>npm start</code>
-				</li>
-				<li>
-					Changes are rebuilt automatically by <code>Vite</code>
-				</li>
-				<li>
-					Interact with your contract immediately in the Contract Explorer
-				</li>
-			</ol>
-			<p>
-				Watch the full process in our{" "}
-				<Link to="https://www.youtube.com/watch?v=86hWe8Ragtg&list=PLmr3tp_7-7Gjj6gn5-bBn-QTMyaWzwOU5&index=1">
-					Youtube tutorial
-				</Link>
-				<br />
-				Get inspired by our showcase of{" "}
-				<Link to="https://scaffoldstellar.org/showcase">Example frontends</Link>
-				<br />
-				Ready to deploy?{" "}
-				<Link to="https://developers.stellar.org/docs/tools/cli/install-cli">
-					Read the mainnet deployment guide
-				</Link>
-			</p>
-		</div>
-
-		<section className={styles.cards}>
-			<div className="card">
-				<p>
-					Invoke your smart contract using the{" "}
-					<Link to="/debug">Contract Explorer</Link>
+/**
+ * Home: the pitch in one screen (criterio "claridad del pitch"): what
+ * InterstellaQ does, for whom, and why Stellar, plus the two entry points
+ * of the demo flow.
+ */
+export default function Home() {
+	return (
+		<div className="iq-home">
+			<section className="iq-hero">
+				<p className="iq-hero__tag">Pagos abiertos sin fronteras</p>
+				<h1>
+					Cobra con QR en Stellar, sin custodiar el dinero de tus clientes
+				</h1>
+				<p className="iq-hero__lead">
+					InterstellaQ permite a un comercio publicar una factura con monto fijo
+					y expiración. El cliente escanea, revisa los datos en su wallet y
+					autoriza el pago. La liquidación se verifica en Testnet contra la
+					transacción real, con evidencia pública en stellar.expert.
 				</p>
-			</div>
-			<div className="card">
-				<p>
-					Browse your local transactions with the{" "}
-					<Link to={labPrefix()}>Transaction Explorer</Link>
+				<div className="iq-hero__actions">
+					<Link to="/comercio" className="iq-btn">
+						Crear una factura
+					</Link>
+					<a
+						href="https://stellar.expert/testnet"
+						target="_blank"
+						rel="noreferrer"
+						className="iq-btn iq-btn--ghost"
+					>
+						Ver la red en stellar.expert
+					</a>
+				</div>
+				<p className="iq-muted">
+					Demo sobre Stellar Testnet. Ninguna clave privada pasa por la
+					aplicación.
 				</p>
-			</div>
-		</section>
-	</div>
-)
+			</section>
 
-export default Home
+			<section className="iq-grid">
+				<div className="card">
+					<h2>El problema</h2>
+					<p>
+						Los pagos transfronterizos para comercios siguen siendo lentos,
+						costosos y difíciles de integrar. Cada transferencia pierde tiempo,
+						pierde dinero y pierde contexto.
+					</p>
+				</div>
+				<div className="card">
+					<h2>La solución</h2>
+					<p>
+						Una solicitud de pago Stellar nativa: factura pública con referencia
+						única, QR con los datos completos y liquidación verificada on-chain.
+						El comercio nunca toca los fondos del cliente.
+					</p>
+				</div>
+				<div className="card">
+					<h2>Por qué Stellar</h2>
+					<p>
+						La red liquida transacciones en segundos por una fracción de
+						centavo, con operaciones nativas, memos para correlación y wallets
+						compatibles con SEP-7.
+					</p>
+				</div>
+			</section>
+
+			<section className="card iq-steps">
+				<h2>Cómo funciona</h2>
+				<ol>
+					<li>
+						El comercio conecta su cuenta, se registra con una firma en Testnet
+						y crea una factura con monto y expiración.
+					</li>
+					<li>
+						Comparte el código QR. El cliente revisa destinatario, monto,
+						referencia y expiración antes de autorizar.
+					</li>
+					<li>
+						La wallet del cliente firma el pago. InterstellaQ verifica la
+						transacción en Horizon y marca la factura como liquidada con su
+						evidencia.
+					</li>
+				</ol>
+				<Link to="/comercio" className="iq-btn">
+					Abrir panel del comercio
+				</Link>
+			</section>
+		</div>
+	)
+}

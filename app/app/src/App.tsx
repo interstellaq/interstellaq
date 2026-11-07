@@ -2,16 +2,17 @@ import { labPrefix } from "@stellar-scaffold/app-lib"
 import { NavLink, Outlet, Route, Routes } from "react-router-dom"
 import styles from "./App.module.css"
 import ConnectAccount from "./components/ConnectAccount"
-import Debug from "./pages/Debug"
 import Home from "./pages/Home"
+import InvoicePage from "./pages/InvoicePage"
+import Merchant from "./pages/Merchant"
 
 function App() {
 	return (
 		<Routes>
 			<Route element={<AppLayout />}>
 				<Route path="/" element={<Home />} />
-				<Route path="/debug" element={<Debug />} />
-				<Route path="/debug/:contractName" element={<Debug />} />
+				<Route path="/comercio" element={<Merchant />} />
+				<Route path="/factura/:address/:id" element={<InvoicePage />} />
 			</Route>
 		</Routes>
 	)
@@ -20,16 +21,18 @@ function App() {
 const AppLayout = () => (
 	<div className={styles.AppLayout}>
 		<header className={styles.header}>
-			<span className={styles.logo}>Scaffold</span>
+			<NavLink to="/" className={styles.logo}>
+				InterstellaQ
+			</NavLink>
 			<nav className={styles.headerNav}>
 				<NavLink
-					to="/debug"
+					to="/comercio"
 					className={({ isActive }) => (isActive ? styles.active : "")}
 				>
-					Contract Explorer
+					Panel del comercio
 				</NavLink>
 				<a href={labPrefix()} target="_blank" rel="noreferrer">
-					Transaction Explorer
+					Explorador de transacciones
 				</a>
 			</nav>
 			<ConnectAccount />
@@ -42,21 +45,25 @@ const AppLayout = () => (
 		<footer className={styles.footer}>
 			<nav className={styles.footerNav}>
 				<a
-					href="https://github.com/stellar-scaffold/cli"
+					href="https://stellar.org/developers/edps/sep-0007"
 					target="_blank"
 					rel="noreferrer"
 				>
-					GitHub
+					SEP-7
 				</a>
 				<a
-					href="https://www.youtube.com/watch?v=0syGaIn3ULk&list=PLmr3tp_7-7Gjj6gn5-bBn-QTMyaWzwOU5"
+					href="https://stellar.expert/testnet"
 					target="_blank"
 					rel="noreferrer"
 				>
-					Tutorial
+					stellar.expert Testnet
 				</a>
-				<a href="https://scaffoldstellar.org" target="_blank" rel="noreferrer">
-					View docs
+				<a
+					href="https://developers.stellar.org"
+					target="_blank"
+					rel="noreferrer"
+				>
+					Documentación de Stellar
 				</a>
 			</nav>
 		</footer>

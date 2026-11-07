@@ -11,7 +11,7 @@ export const WalletButton = () => {
 	if (!address) {
 		return (
 			<button onClick={() => void connectWallet()} disabled={isPending}>
-				{isPending ? "Loading..." : "Connect"}
+				{isPending ? "Cargando..." : "Conectar"}
 			</button>
 		)
 	}

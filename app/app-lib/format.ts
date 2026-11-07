@@ -51,7 +51,7 @@ export function networkStatus(
 			appNetwork,
 			walletNetwork,
 			state: "disconnected",
-			title: "Connect your wallet using this network.",
+			title: "Conecta tu wallet para verificar la red.",
 		}
 	}
 	if (!walletPassphrase) {
@@ -59,7 +59,7 @@ export function networkStatus(
 			appNetwork,
 			walletNetwork,
 			state: "unverified",
-			title: `This wallet doesn't report its network — make sure it is set to ${appNetwork}.`,
+			title: `Esta wallet no reporta su red. Asegúrate de que esté en ${appNetwork}.`,
 		}
 	}
 	if (walletPassphrase !== networkPassphrase) {
@@ -67,7 +67,7 @@ export function networkStatus(
 			appNetwork,
 			walletNetwork,
 			state: "mismatch",
-			title: `Wallet is on ${walletNetwork}, connect to ${appNetwork} instead.`,
+			title: `La wallet está en ${walletNetwork}. Conéctala a ${appNetwork}.`,
 		}
 	}
 	return { appNetwork, walletNetwork, state: "ok", title: "" }
@@ -88,5 +88,5 @@ export const errorMessage = (error: unknown): string => {
 			? error.message
 			: String(error)
 	const [firstLine = ""] = message.split("\n")
-	return firstLine.trim() || "Unknown error"
+	return firstLine.trim() || "Error desconocido"
 }

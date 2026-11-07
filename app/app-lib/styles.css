@@ -1,17 +1,20 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Inconsolata:wght@500&display=swap");
 
+/* Stellar Testnet theme: dark navy surfaces with the official Stellar
+   light blue (#04b5e5) as the action color. */
 :root {
-	--color-bg: #ffffff;
-	--color-surface: #f8f9fa;
-	--color-text: #1a1a2e;
-	--color-text-muted: #6c757d;
-	--color-border: #dee2e6;
-	--color-accent: #7b61ff;
-	--color-success: #198754;
-	--color-error: #dc3545;
-	--color-warning: #f0ad4e;
-	--radius: 6px;
-	--shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+	--color-bg: #080814;
+	--color-surface: #12122a;
+	--color-text: #ffffff;
+	--color-text-muted: #9aa0b8;
+	--color-border: #26264a;
+	--color-accent: #04b5e5;
+	--color-accent-contrast: #041235;
+	--color-success: #2ed06e;
+	--color-error: #ff4d6d;
+	--color-warning: #ffb020;
+	--radius: 8px;
+	--shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
 *,
@@ -57,7 +60,7 @@ button {
 }
 
 button:hover:not(:disabled) {
-	background: var(--color-border);
+	filter: brightness(1.15);
 }
 
 button:disabled {
@@ -110,8 +113,8 @@ dialog::backdrop {
 
 /* NetworkPill */
 .network-pill {
-	background-color: #f0f2f5;
-	color: #4a5362;
+	background-color: #12122a;
+	color: #cbd2e0;
 	padding: 4px 10px;
 	border-radius: 16px;
 	font-size: 12px;
