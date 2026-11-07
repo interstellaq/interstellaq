@@ -93,6 +93,10 @@ hash is stored as registration evidence and linked to stellar.expert.
 
 - Settlement evidence and registration proof are public and inspectable
   on stellar.expert/Testnet.
+- The merchant panel and the invoice page poll Horizon every 20 seconds
+  while an invoice is pending, so a confirmed payment updates the status
+  without user action. The poll pauses when the tab is hidden, never runs
+  two queries at once, and a failed check leaves the status unchanged.
 - The demo depends on Horizon Testnet availability; verification failures
   surface as an actionable status instead of an invoice state change.
 - Invoice state does not survive a browser clear or move across devices

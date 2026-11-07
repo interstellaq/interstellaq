@@ -5,8 +5,8 @@ Priority is a complete, demonstrable Testnet payment flow within the hackathon, 
 ## Progress (2026-11-07)
 
 - **M0 complete**: scaffold generated at `app/` (commit after the `kickoff` tag), Testnet wallet path validated with the Stellar Wallets Kit and a live payment, correlation decided in [ADR 0002](adr/0002-invoice-correlation.md).
-- **M1 complete**: registration with on-chain proof, invoice creation with expiry, QR request with embedded payload, wallet authorization, and Horizon verification with stellar.expert evidence links.
-- **M2 complete**: negative and expiry cases covered by the unit suite plus a live wrong-amount check (`npm run test:net`), security review reflected in ADR 0002 and docs/SECURITY.md, demo runbook in [docs/PITCH.md](PITCH.md) and the README.
+- **M1 complete**: registration with on-chain proof, invoice creation with expiry, QR request with embedded payload, wallet authorization, Horizon verification with stellar.expert evidence links, and automatic payment monitoring (a 20 s Horizon poll while any invoice is pending).
+- **M2 complete**: negative and expiry cases covered by the unit suite plus a live wrong-amount check (`npm run test:net`), security review reflected in ADR 0002 and docs/SECURITY.md, demo runbook in [docs/PITCH.md](PITCH.md) and the README, and delivered scope declared against the registered project description in [docs/PRD.md](PRD.md).
 - **M3 pending**: Soroban invoice contract assessment deferred; the scaffold example contracts remain under `app/contracts/` for that evaluation.
 
 ## M0 — Foundations

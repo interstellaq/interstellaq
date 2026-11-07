@@ -41,13 +41,15 @@ Pasos en pantalla, en este orden:
 3. Abrir la factura: datos completos, cuenta regresiva de expiración, código
    QR con el pago incrustado.
 4. Con una segunda wallet (o la misma en otra pestaña), pagar: la wallet
-   pide confirmación, la transacción se envía y el estado cambia a Liquidada
-   con enlace a la transacción en stellar.expert.
+   pide confirmación y la transacción se envía. Sin tocar nada más, el
+   monitoreo automático detecta la transacción en unos segundos y el estado
+   cambia a Liquidada con enlace a la transacción en stellar.expert.
 5. Mostrar un caso negativo: verificar una factura sin pago o con un monto
    distinto no la liquidará.
 
-Si cae la red: explicar que la verificación consulta Horizon Testnet y que
-un error de red deja el estado intacto, nunca inventa una liquidación.
+Si cae la red: explicar que la verificación consulta Horizon Testnet, que un
+error de red deja el estado intacto y nunca inventa una liquidación, y que
+el monitoreo automático vuelve a intentarlo en el siguiente ciclo.
 
 ## 3:30 a 4:15 - Por qué Stellar
 
@@ -69,12 +71,12 @@ un error de red deja el estado intacto, nunca inventa una liquidación.
   pruebas automatizadas que liquidan un pago real y que rechazan un pago con
   monto incorrecto (`npm run test:net`).
 - Alcance declarado frente al alcance entregado, con transparencia: todos los
-  flujos funcionales de la descripción están implementados, y el MVP se
-  limita a XLM nativo (sin stablecoins), usa React con Vite en lugar de
-  Next.js, no tiene backend NestJS porque el estado vive en el navegador, y
-  verifica la liquidación bajo demanda en lugar de monitorear en segundo
-  plano. Cada desviación está registrada en `docs/PRD.md` y en el ADR 0002.
+  flujos funcionales de la descripción están implementados, incluido el
+  monitoreo automático de pagamentos, y el MVP se limita a XLM nativo (sin
+  stablecoins), usa React con Vite en lugar de Next.js, y no tiene backend
+  NestJS porque el estado vive en el navegador. Cada desviación está
+  registrada en `docs/PRD.md` y en el ADR 0002.
 - Siguientes pasos con fechas: activos emitidos y cotizaciones multi-asset
   (post hackathon), persistencia compartida para facturas multi-dispositivo,
-  monitoreo continuo de pagos, y evaluación de un contrato Soroban para
-  reglas de liquidación programables (backlog M3).
+  y evaluación de un contrato Soroban para reglas de liquidación
+  programables (backlog M3).

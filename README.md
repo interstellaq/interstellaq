@@ -21,6 +21,7 @@ The hackathon MVP runs on Stellar Testnet end to end:
 - QR payment request that embeds the full request in the URL, so it opens on any device without a backend, plus a SEP-7 `web+stellar://pay` handoff.
 - Customer payment through the connected wallet (Stellar Wallets Kit): the app builds the exact XLM payment, the wallet signs it, the app submits it.
 - Settlement verification against Horizon: successful transaction, matching memo reference, recipient, exact amount in stroops, non-native assets rejected, self-payments rejected, expired invoices never settle, and one transaction can never settle two invoices.
+- Automatic payment monitoring: the merchant panel and the invoice page poll Horizon every 20 seconds while an invoice is pending, so a confirmed payment flips the status without anyone pressing a button.
 - Invoice states: active, settled, expired, verification_failed, with public evidence links per settled invoice.
 - Spanish interface, keyboard-operable forms, and text equivalents for QR data.
 
@@ -28,12 +29,11 @@ Deliberately out of scope for the MVP (see docs/PRD.md): custody, refunds, fiat 
 
 ### Delivered scope vs. the registered project description
 
-Every functional feature of the registered description ("Gateway Global de Pagamentos por QR Code") is present: company registration, QR payment requests, Freighter-compatible wallet authorization, on-chain settlement, payment verification, a merchant panel with history, and explorer links. Four deviations are deliberate and documented in [docs/PRD.md](docs/PRD.md) and [ADR 0002](docs/adr/0002-invoice-correlation.md):
+Every functional feature of the registered description ("Gateway Global de Pagamentos por QR Code") is present: company registration, QR payment requests, Freighter-compatible wallet authorization, on-chain settlement, automatic payment monitoring, a merchant panel with history, and explorer links. Three deviations are deliberate and documented in [docs/PRD.md](docs/PRD.md) and [ADR 0002](docs/adr/0002-invoice-correlation.md):
 
 - **Native XLM only**: stablecoins and other issued assets are a roadmap item, not part of the MVP.
 - **React + Vite, not Next.js**: the official Scaffold Stellar template; TypeScript throughout.
 - **No NestJS backend**: invoice state lives in the browser, which is what keeps the flow non-custodial.
-- **Verification on demand**: settlement is checked when the merchant presses "Verificar estado" or right after a payment, instead of a continuous background monitor.
 
 ## How to run
 

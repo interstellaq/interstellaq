@@ -45,6 +45,8 @@ Delivered states: `active`, `settled`, `expired`, and `verification_failed`. The
 
 Delivered: a Horizon query over the recipient's recent transactions, filtered by the invoice's unique text memo, then matched against recipient, native asset, exact amount in stroops, and a source account different from the recipient. Failed checks leave the stored status untouched.
 
+The check runs automatically every 20 seconds while the merchant panel or the invoice page holds a pending invoice, in addition to the manual "Verificar estado" button and the check that follows a payment submission. The poll pauses while the tab is hidden and never overlaps itself.
+
 ## Architecture questions: resolved in ADR 0002
 
 - Which wallet(s) and QR/URI request formats are demonstrably supported? Stellar Wallets Kit (Freighter included) for in-app signing, plus a SEP-7 `web+stellar://pay` URI; the QR carries the full request in the URL fragment.
