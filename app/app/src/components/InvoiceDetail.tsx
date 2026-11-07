@@ -2,6 +2,10 @@ import { shortAddress } from "@stellar-scaffold/app-lib"
 import { useEffect, useState } from "react"
 import { derivedStatus, remainingMs, type Invoice } from "../domain/invoice"
 import { useNotification } from "../hooks/useNotification"
+import {
+	MONITOR_INTERVAL_MS,
+	useSettlementMonitor,
+} from "../hooks/useSettlementMonitor"
 import { buildInvoiceUrl, buildSep7PayUri } from "../lib/handoff"
 import { stellarExpertTxUrl } from "../lib/stellar"
 import { verifyAndUpdate } from "../lib/verify"
@@ -40,6 +44,10 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 	const { addNotification } = useNotification()
 	const [now, setNow] = useState(() => Date.now())
 	const [verifying, setVerifying] = useState(false)
+	const monitoring = useSettlementMonitor([invoice], (list) => {
+		const updated = list.find((item) => item.id === invoice.id)
+		if (updated) onUpdated(updated)
+	})
 
 	useEffect(() => {
 		const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -144,6 +152,12 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 							</button>
 						)}
 					</div>
+					{monitoring && (
+						<p className="iq-monitor">
+							Monitoreo automático activo: Testnet se consulta cada{" "}
+							{MONITOR_INTERVAL_MS / 1000} segundos.
+						</p>
+					)}
 					{invoice.txHash && (
 						<p className="iq-evidence">
 							Liquidada con evidencia en{" "}
@@ -159,8 +173,9 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 					)}
 					{status === "verification_failed" && (
 						<p className="iq-warning">
-							El pago se envió pero la verificación aún no lo confirma. Pulsa
-							Verificar estado en unos segundos.
+							El pago se envió pero la verificación aún no lo confirma. El
+							monitoreo automático lo confirmará en unos segundos, o pulsa
+							Verificar estado.
 						</p>
 					)}
 					{status === "expired" && (

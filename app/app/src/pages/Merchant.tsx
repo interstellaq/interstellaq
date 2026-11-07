@@ -6,6 +6,10 @@ import { InvoiceList } from "../components/InvoiceList"
 import { MerchantRegister } from "../components/MerchantRegister"
 import { type Invoice } from "../domain/invoice"
 import { type MerchantProfile } from "../domain/merchant"
+import {
+	MONITOR_INTERVAL_MS,
+	useSettlementMonitor,
+} from "../hooks/useSettlementMonitor"
 import { useWallet } from "../hooks/useWallet"
 import { loadInvoices, loadMerchant } from "../lib/persistence"
 import { stellarExpertTxUrl } from "../lib/stellar"
@@ -25,6 +29,7 @@ export default function Merchant() {
 	const { address, isPending } = useWallet()
 	const [merchant, setMerchant] = useState<MerchantProfile | null>(null)
 	const [invoices, setInvoices] = useState<Invoice[]>([])
+	const monitoring = useSettlementMonitor(invoices, setInvoices)
 
 	useEffect(() => {
 		if (!address) {
@@ -101,6 +106,12 @@ export default function Merchant() {
 				recipientName={merchant.displayName}
 				onCreated={reload}
 			/>
+			{monitoring && (
+				<p className="iq-monitor">
+					Monitoreo automático activo: Testnet se consulta cada{" "}
+					{MONITOR_INTERVAL_MS / 1000} segundos para confirmar pagos.
+				</p>
+			)}
 			<InvoiceList invoices={invoices} />
 
 			<p className="iq-muted">

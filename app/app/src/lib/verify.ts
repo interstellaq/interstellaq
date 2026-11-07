@@ -5,7 +5,7 @@
  * replay protection).
  */
 
-import { type Invoice } from "../domain/invoice"
+import { isPayable, type Invoice } from "../domain/invoice"
 import { isTxHashUsed, saveInvoice } from "./persistence"
 import { verifySettlement, type VerifyResult } from "./stellar"
 
@@ -43,4 +43,27 @@ export async function verifyAndUpdate(
 	}
 	saveInvoice(invoice.recipient, updated)
 	return { kind: "settled", invoice: updated }
+}
+
+/**
+ * Verify every invoice that is still pending and return the list with the
+ * confirmed transitions applied. Settled and expired invoices are skipped,
+ * so a background poll never re-queries evidence the UI already resolved.
+ *
+ * Returns the same array reference when nothing changed, which lets callers
+ * compare identities to decide whether a re-render is needed.
+ */
+export async function verifyPending(invoices: Invoice[]): Promise<Invoice[]> {
+	const pending = invoices.filter((invoice) => isPayable(invoice))
+	if (pending.length === 0) return invoices
+	const outcomes = await Promise.all(
+		pending.map((invoice) => verifyAndUpdate(invoice)),
+	)
+	const confirmed = new Map<string, Invoice>()
+	pending.forEach((invoice, index) => {
+		const outcome = outcomes[index]
+		if (outcome?.kind === "settled") confirmed.set(invoice.id, outcome.invoice)
+	})
+	if (confirmed.size === 0) return invoices
+	return invoices.map((invoice) => confirmed.get(invoice.id) ?? invoice)
 }
