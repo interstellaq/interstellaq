@@ -1,3 +1,5 @@
+import { StrKey } from "@stellar/stellar-sdk"
+
 /**
  * Merchant registration model (FR-01).
  *
@@ -15,6 +17,33 @@ export interface MerchantProfile {
 	registeredAt: number
 	/** Hash of the registration transaction that proves account control. */
 	registrationTxHash: string
+}
+
+const TX_HASH_PATTERN = /^[0-9a-f]{64}$/i
+
+/**
+ * Validate merchant metadata read from browser storage. This establishes only
+ * that the local record is well formed; on-chain registration evidence is
+ * checked separately by lib/registration.ts before the UI trusts the profile.
+ */
+export function validateMerchantProfile(
+	value: unknown,
+	expectedAddress?: string,
+): value is MerchantProfile {
+	if (typeof value !== "object" || value === null) return false
+	const profile = value as Partial<MerchantProfile>
+	return (
+		typeof profile.address === "string" &&
+		StrKey.isValidEd25519PublicKey(profile.address) &&
+		(expectedAddress === undefined || profile.address === expectedAddress) &&
+		typeof profile.displayName === "string" &&
+		validateDisplayName(profile.displayName) === null &&
+		typeof profile.registeredAt === "number" &&
+		Number.isSafeInteger(profile.registeredAt) &&
+		profile.registeredAt > 0 &&
+		typeof profile.registrationTxHash === "string" &&
+		TX_HASH_PATTERN.test(profile.registrationTxHash)
+	)
 }
 
 /**

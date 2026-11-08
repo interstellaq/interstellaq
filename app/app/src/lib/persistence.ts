@@ -15,7 +15,10 @@ import {
 	type InvoiceStatus,
 	validateInvoiceData,
 } from "../domain/invoice"
-import { type MerchantProfile } from "../domain/merchant"
+import {
+	type MerchantProfile,
+	validateMerchantProfile,
+} from "../domain/merchant"
 
 const invoicesKey = (address: string) => `interstellaq.invoices.${address}`
 const merchantKey = (address: string) => `interstellaq.merchant.${address}`
@@ -139,10 +142,12 @@ export function isTxHashUsed(
 
 /** Merchant profile for an address, or null when unregistered. */
 export function loadMerchant(address: string): MerchantProfile | null {
-	return read<MerchantProfile | null>(merchantKey(address), null)
+	const profile = read<unknown>(merchantKey(address), null)
+	return validateMerchantProfile(profile, address) ? profile : null
 }
 
 /** Persist a confirmed merchant registration. Returns false when unavailable. */
 export function saveMerchant(profile: MerchantProfile): boolean {
+	if (!validateMerchantProfile(profile)) return false
 	return write(merchantKey(profile.address), profile)
 }

@@ -22,7 +22,7 @@ Los activos incluyen fondos del cliente, cuentas de recepción del comercio, dat
 ## Requisitos de autorización
 
 - Las firmas del cliente deben ser creadas por la billetera del cliente.
-- Las acciones del comercio deben estar vinculadas al control de la cuenta de comercio declarada antes de que su registro sea de confianza.
+- Las acciones del comercio deben estar vinculadas al control de la cuenta de comercio declarada antes de que su registro sea de confianza. Un perfil guardado localmente es solamente metadato hasta que la aplicación haya comprobado en Horizon Testnet que su hash identifica una transacción exitosa, originada por esa cuenta, con el memo y la operación de registro esperados. La respuesta de firma de una billetera y la aceptación de envío no sustituyen esa confirmación de ledger. El nombre y la fecha del perfil son metadatos visuales locales; no están autenticados en cadena.
 - Cualquier capacidad administrativa de Soroban debe ser explícita, mínima y documentada antes del despliegue.
 
 ## Invariantes de pago
