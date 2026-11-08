@@ -1,0 +1,268 @@
+/* Landing V1. The approved palette is scoped to .landing so the global
+   tokens in app-lib/styles.css (and with them the merchant panel) stay
+   untouched. Landing components read the same --lp-* properties. */
+.landing {
+	--lp-bg: #090b16;
+	--lp-surface: #151b2e;
+	--lp-surface-raised: #1c2440;
+	--lp-text: #f7f9fc;
+	--lp-text-secondary: #a5b0c6;
+	--lp-accent: #00bceb;
+	--lp-success: #25c997;
+	--lp-border: rgba(165, 176, 198, 0.16);
+	--lp-radius: 12px;
+	--lp-radius-lg: 20px;
+
+	display: flex;
+	flex-direction: column;
+	gap: clamp(3.5rem, 2rem + 6vw, 6rem);
+	padding-bottom: clamp(2rem, 1rem + 4vw, 4rem);
+	color: var(--lp-text);
+	overflow-wrap: break-word;
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+
+.hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	align-items: center;
+	gap: clamp(2.5rem, 1.5rem + 4vw, 4rem);
+	padding-top: clamp(1rem, 0.5rem + 3vw, 3.5rem);
+}
+
+.heroContent {
+	min-width: 0;
+	max-width: 36rem;
+}
+
+.eyebrow {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0 0 1.5rem;
+	padding: 0.25rem 0.75rem;
+	border: 1px solid var(--lp-border);
+	border-radius: 999px;
+	background: var(--lp-surface);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	line-height: 1.5;
+	color: var(--lp-text-secondary);
+}
+
+.eyebrowDot {
+	flex: 0 0 auto;
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	background: var(--lp-success);
+}
+
+.title {
+	margin: 0 0 1.25rem;
+	font-size: clamp(2.125rem, 1.2rem + 3.6vw, 3.75rem);
+	font-weight: 700;
+	line-height: 1.05;
+	letter-spacing: -0.035em;
+	text-wrap: balance;
+}
+
+.title span {
+	display: block;
+	color: var(--lp-accent);
+}
+
+.lead {
+	margin: 0 0 2rem;
+	max-width: 32rem;
+	font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
+	line-height: 1.6;
+	color: var(--lp-text-secondary);
+	text-wrap: pretty;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-bottom: 1.25rem;
+}
+
+.cta {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.625rem;
+	min-height: 48px;
+	padding: 0.75rem 1.5rem;
+	border-radius: var(--lp-radius);
+	background: var(--lp-accent);
+	/* Dark text on the accent: 8.8:1. Light text would be 2.1:1. */
+	color: var(--lp-bg);
+	font-size: 1rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	box-shadow: 0 8px 24px -12px rgba(0, 188, 235, 0.6);
+	transition:
+		background-color 0.15s ease,
+		box-shadow 0.15s ease;
+}
+
+.cta:hover {
+	background: #33c9ef;
+	box-shadow: 0 10px 28px -10px rgba(0, 188, 235, 0.75);
+}
+
+.cta:active {
+	background: #00a8d3;
+}
+
+.cta:focus-visible {
+	outline: 2px solid var(--lp-text);
+	outline-offset: 3px;
+}
+
+.cta svg {
+	flex: 0 0 auto;
+	transition: transform 0.15s ease;
+}
+
+.cta:hover svg {
+	transform: translateX(2px);
+}
+
+.note {
+	margin: 0;
+	max-width: 32rem;
+	font-size: 0.875rem;
+	line-height: 1.6;
+	color: var(--lp-text-secondary);
+}
+
+/* ── Secondary sections ──────────────────────────────────────────────── */
+
+.section {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+}
+
+.sectionTitle {
+	margin: 0;
+	font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+}
+
+.steps,
+.features {
+	display: grid;
+	/* One column until all three fit; avoids a 2 + 1 orphan on tablets. */
+	grid-template-columns: minmax(0, 1fr);
+	gap: 1rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.steps {
+	counter-reset: step;
+}
+
+.panel {
+	min-width: 0;
+	padding: clamp(1.125rem, 0.875rem + 1vw, 1.5rem);
+	border: 1px solid var(--lp-border);
+	border-radius: var(--lp-radius-lg);
+	background: var(--lp-surface);
+}
+
+.panel h3 {
+	margin: 0 0 0.5rem;
+	font-size: 1.0625rem;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.panel p {
+	margin: 0;
+	font-size: 0.9375rem;
+	line-height: 1.6;
+	color: var(--lp-text-secondary);
+}
+
+.steps .panel {
+	counter-increment: step;
+}
+
+.steps .panel::before {
+	content: counter(step, decimal-leading-zero);
+	display: block;
+	margin-bottom: 1rem;
+	font-family: Inconsolata, ui-monospace, monospace;
+	font-size: 0.875rem;
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	color: var(--lp-accent);
+}
+
+.features .panel {
+	border-top: 2px solid rgba(0, 188, 235, 0.45);
+}
+
+.scope {
+	padding: clamp(1.25rem, 1rem + 2vw, 2rem);
+	border: 1px solid var(--lp-border);
+	border-radius: var(--lp-radius-lg);
+	background: linear-gradient(135deg, rgba(0, 188, 235, 0.06), transparent 60%);
+	gap: 1rem;
+}
+
+.scopeList {
+	display: grid;
+	gap: 0.625rem;
+	margin: 0;
+	padding-left: 1.25rem;
+	color: var(--lp-text-secondary);
+}
+
+.scopeList li::marker {
+	color: var(--lp-accent);
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────── */
+
+@media (min-width: 900px) {
+	.steps,
+	.features {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 960px) {
+	.hero {
+		grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+		gap: clamp(2.5rem, 4vw, 4.5rem);
+		padding-top: 3.5rem;
+		/* closest-side fades out before every edge: no visible box. */
+		background: radial-gradient(
+			closest-side at 76% 50%,
+			rgba(0, 188, 235, 0.12),
+			transparent
+		);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cta,
+	.cta svg {
+		transition: none;
+	}
+
+	.cta:hover svg {
+		transform: none;
+	}
+}
