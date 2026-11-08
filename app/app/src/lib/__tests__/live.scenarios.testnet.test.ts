@@ -89,6 +89,15 @@ function resultCodes(error: unknown): unknown {
 	return data?.extras?.result_codes ?? null
 }
 
+/** Native XLM balance of an account as reported by Horizon. */
+function nativeBalance(account: Horizon.AccountResponse): string {
+	const native = account.balances.find(
+		(balance) => balance.asset_type === "native",
+	)
+	if (!native) throw new Error("account without native balance")
+	return native.balance
+}
+
 async function latestLedgerTime(): Promise<number> {
 	const page = await horizon.ledgers().order("desc").limit(1).call()
 	const latest = page.records[0]
@@ -232,6 +241,7 @@ describe.skipIf(!authorized)("live Testnet settlement scenarios", () => {
 		) as Transaction
 		const maxTime = Number(tx.timeBounds?.maxTime)
 		const before = await horizon.loadAccount(customer.publicKey())
+		const merchantBefore = await horizon.loadAccount(merchant.publicKey())
 
 		await waitForLedgerAfter(maxTime * 1000)
 		tx.sign(customer)
@@ -243,6 +253,7 @@ describe.skipIf(!authorized)("live Testnet settlement scenarios", () => {
 			codes = resultCodes(error)
 		}
 		const after = await horizon.loadAccount(customer.publicKey())
+		const merchantAfter = await horizon.loadAccount(merchant.publicKey())
 		const result = await verifySettlement(invoice)
 		record("S3", {
 			merchant: merchant.publicKey(),
@@ -254,6 +265,10 @@ describe.skipIf(!authorized)("live Testnet settlement scenarios", () => {
 			resultCodes: codes,
 			sequenceBefore: before.sequenceNumber(),
 			sequenceAfter: after.sequenceNumber(),
+			customerBalanceBefore: nativeBalance(before),
+			customerBalanceAfter: nativeBalance(after),
+			merchantBalanceBefore: nativeBalance(merchantBefore),
+			merchantBalanceAfter: nativeBalance(merchantAfter),
 			result,
 		})
 
@@ -262,6 +277,8 @@ describe.skipIf(!authorized)("live Testnet settlement scenarios", () => {
 		expect(codes).toMatchObject({ transaction: "tx_too_late" })
 		// Nothing was applied: no fee, no sequence bump, no payment.
 		expect(after.sequenceNumber()).toBe(before.sequenceNumber())
+		expect(nativeBalance(after)).toBe(nativeBalance(before))
+		expect(nativeBalance(merchantAfter)).toBe(nativeBalance(merchantBefore))
 		expect(result).toMatchObject({ settled: false })
 	}, 600_000)
 
