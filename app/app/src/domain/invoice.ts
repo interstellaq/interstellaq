@@ -1,3 +1,6 @@
+import { StrKey } from "@stellar/stellar-sdk"
+import { isValidReference } from "../lib/reference"
+
 /**
  * Invoice model and lifecycle for the InterstellaQ payment request flow.
  *
@@ -69,6 +72,87 @@ export interface InvoiceInput {
 	now?: number
 }
 
+/** Runtime fields shared by locally created invoices and QR requests. */
+export interface InvoiceValidationInput {
+	id?: unknown
+	reference?: unknown
+	recipient?: unknown
+	recipientName?: unknown
+	asset?: unknown
+	amount?: unknown
+	note?: unknown
+	createdAt?: unknown
+	expiresAt?: unknown
+}
+
+/**
+ * Validate invoice structure at every untrusted boundary.
+ *
+ * This does not authenticate a shared QR URL or prove who created it; that
+ * requires a separately verified signature or trusted origin.
+ */
+export function validateInvoiceData(
+	input: InvoiceValidationInput,
+	options: { requireId?: boolean } = {},
+): string | null {
+	if (
+		typeof input.recipient !== "string" ||
+		!StrKey.isValidEd25519PublicKey(input.recipient)
+	) {
+		return "El destinatario debe ser una cuenta Stellar válida."
+	}
+	if (
+		typeof input.reference !== "string" ||
+		!isValidReference(input.reference)
+	) {
+		return "La referencia de la factura no es válida."
+	}
+	if (input.asset !== "XLM") return "El activo de la factura debe ser XLM."
+	if (typeof input.amount !== "string")
+		return "El monto de la factura no es válido."
+	const stroops = toStroops(input.amount)
+	if (stroops === null || stroops <= 0n) {
+		return "Ingresa un monto válido en XLM mayor que cero."
+	}
+	if (
+		typeof input.createdAt !== "number" ||
+		typeof input.expiresAt !== "number" ||
+		!Number.isSafeInteger(input.createdAt) ||
+		!Number.isSafeInteger(input.expiresAt) ||
+		input.createdAt <= 0 ||
+		input.expiresAt <= input.createdAt
+	) {
+		return "Las fechas de la factura no son válidas."
+	}
+	const expiryMinutes = (input.expiresAt - input.createdAt) / 60_000
+	if (!EXPIRY_OPTIONS_MINUTES.some((minutes) => minutes === expiryMinutes)) {
+		return "La expiración de la factura no es válida."
+	}
+	if (
+		input.note !== undefined &&
+		(typeof input.note !== "string" || input.note.trim().length > 60)
+	) {
+		return "El concepto no puede superar 60 caracteres."
+	}
+	if (
+		input.recipientName !== undefined &&
+		(typeof input.recipientName !== "string" ||
+			input.recipientName.trim().length > 40)
+	) {
+		return "El nombre del comercio no puede superar 40 caracteres."
+	}
+	if (
+		options.requireId &&
+		(typeof input.id !== "string" ||
+			!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+				input.id,
+			))
+	) {
+		return "El identificador de la factura no es válido."
+	}
+	return null
+}
+
 /**
  * Validate user input and build an invoice (FR-02). Invalid or incomplete
  * input is rejected with a message suitable for direct display.
@@ -77,27 +161,41 @@ export function createInvoice(
 	input: InvoiceInput,
 ): Invoice | { error: string } {
 	const now = input.now ?? Date.now()
-	const stroops = toStroops(input.amount.trim())
-	if (stroops === null || stroops <= 0n) {
-		return { error: "Ingresa un monto válido en XLM mayor que cero." }
-	}
-	if (!Number.isInteger(input.expiryMinutes) || input.expiryMinutes <= 0) {
+	const recipient = input.recipient.trim()
+	const amount = input.amount.trim()
+	const reference = input.reference.trim()
+	const note = input.note?.trim()
+	const recipientName = input.recipientName?.trim()
+	if (
+		!Number.isSafeInteger(now) ||
+		!EXPIRY_OPTIONS_MINUTES.some((minutes) => minutes === input.expiryMinutes)
+	) {
 		return { error: "Selecciona un tiempo de expiración válido." }
 	}
-	const note = input.note?.trim()
-	if (note !== undefined && note.length > 60) {
-		return { error: "El concepto no puede superar 60 caracteres." }
+	const expiresAt = now + input.expiryMinutes * 60_000
+	const error = validateInvoiceData({
+		recipient,
+		reference,
+		asset: "XLM",
+		amount,
+		note,
+		recipientName,
+		createdAt: now,
+		expiresAt,
+	})
+	if (error) {
+		return { error }
 	}
 	return {
 		id: crypto.randomUUID(),
-		reference: input.reference,
-		recipient: input.recipient,
-		recipientName: input.recipientName,
+		reference,
+		recipient,
+		recipientName,
 		asset: "XLM",
-		amount: input.amount.trim(),
+		amount,
 		note: note === "" ? undefined : note,
 		createdAt: now,
-		expiresAt: now + input.expiryMinutes * 60_000,
+		expiresAt,
 		status: "active",
 	}
 }

@@ -1,4 +1,3 @@
-import { shortAddress } from "@stellar-scaffold/app-lib"
 import { useEffect, useState } from "react"
 import { derivedStatus, remainingMs, type Invoice } from "../domain/invoice"
 import { useNotification } from "../hooks/useNotification"
@@ -117,7 +116,7 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 						<dt>Destinatario</dt>
 						<dd>
 							{invoice.recipientName ?? "Comercio"}{" "}
-							<code>{shortAddress(invoice.recipient)}</code>
+							<code>{invoice.recipient}</code>
 						</dd>
 						<dt>Referencia (memo)</dt>
 						<dd>
@@ -138,6 +137,11 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 							)}
 						</dd>
 					</dl>
+					<p className="iq-warning">
+						Esta aplicación valida la estructura de la solicitud, pero un enlace
+						o código QR compartido sin firma no acredita por sí solo quién lo
+						creó.
+					</p>
 					<div className="iq-detail__actions">
 						<button
 							type="button"

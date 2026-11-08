@@ -9,11 +9,12 @@ import {
 } from "../../domain/invoice"
 
 const NOW = 1_760_000_000_000
+const RECIPIENT = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 
 const makeInvoice = (overrides: Partial<Invoice> = {}): Invoice => ({
 	id: "2f6b5f8e-0000-4000-8000-000000000001",
 	reference: "ISQABCDEFGHIJ",
-	recipient: "GMERCHANTADDRESSEXAMPLE0000000000000000000000000000",
+	recipient: RECIPIENT,
 	recipientName: "Café Andes",
 	asset: "XLM",
 	amount: "12.5000000",
@@ -42,7 +43,7 @@ describe("toStroops", () => {
 describe("createInvoice", () => {
 	it("creates an active invoice with the given expiry", () => {
 		const result = createInvoice({
-			recipient: "GABC",
+			recipient: RECIPIENT,
 			amount: "5",
 			note: "Pedido 1",
 			expiryMinutes: 30,
@@ -60,7 +61,7 @@ describe("createInvoice", () => {
 	it("rejects invalid or incomplete input", () => {
 		expect(
 			createInvoice({
-				recipient: "GABC",
+				recipient: RECIPIENT,
 				amount: "0",
 				expiryMinutes: 30,
 				reference: "ISQABCDEFGHIJ",
@@ -69,9 +70,36 @@ describe("createInvoice", () => {
 		).toHaveProperty("error")
 		expect(
 			createInvoice({
-				recipient: "GABC",
+				recipient: RECIPIENT,
 				amount: "5",
 				expiryMinutes: 0,
+				reference: "ISQABCDEFGHIJ",
+				now: NOW,
+			}),
+		).toHaveProperty("error")
+		expect(
+			createInvoice({
+				recipient: "GABC",
+				amount: "5",
+				expiryMinutes: 30,
+				reference: "ISQABCDEFGHIJ",
+				now: NOW,
+			}),
+		).toHaveProperty("error")
+		expect(
+			createInvoice({
+				recipient: RECIPIENT,
+				amount: "5",
+				expiryMinutes: 30,
+				reference: "not-a-memo",
+				now: NOW,
+			}),
+		).toHaveProperty("error")
+		expect(
+			createInvoice({
+				recipient: RECIPIENT,
+				amount: "5",
+				expiryMinutes: 17,
 				reference: "ISQABCDEFGHIJ",
 				now: NOW,
 			}),
