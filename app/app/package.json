@@ -28,6 +28,7 @@
     "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
+    "@stellar/typescript-wallet-sdk": "5.1.0",
     "@types/lodash": "^4.17.24",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",

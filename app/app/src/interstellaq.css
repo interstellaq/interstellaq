@@ -287,6 +287,22 @@
 	margin: 0.75rem 0 0;
 }
 
+.iq-sep7 {
+	margin-top: 1rem;
+}
+
+.iq-sep7 summary {
+	cursor: pointer;
+}
+
+.iq-sep7 ul {
+	padding-left: 1.25rem;
+}
+
+.iq-sep7 button {
+	margin-top: 0.75rem;
+}
+
 .iq-monitor {
 	border-left: 2px solid var(--color-accent);
 	padding-left: 0.75rem;
