@@ -1,0 +1,22 @@
+# Artefatos de build Rust/Soroban — multi-GB, com arquivos > 100 MB
+# (o limite de 100 MB é por arquivo; sem isto o upload falha)
+target/
+.soroban/
+.scaffold/
+
+# Dependências e saída de build: a Vercel instala/gera na nuvem
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Configuração local — use as variáveis de ambiente do painel da Vercel
+.env
+.env.*
+!.env.example
+
+# Arquivos de teste e lixo local
+test_snapshots/
+logs/
+*.log
+.claude/
+.DS_Store
