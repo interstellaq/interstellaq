@@ -9,6 +9,7 @@
     "build": "npm run build --workspace app",
     "test": "npm run test --workspace app",
     "test:net": "npm run test:net --workspace app",
+    "test:net:scenarios": "npm run test:net:scenarios --workspace app",
     "validate:local": "npm run typecheck --workspace app && npm run lint --workspace app && npm test && npm run build --workspace app && npm run format:check",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier . --write",

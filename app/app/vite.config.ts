@@ -20,7 +20,7 @@ export default defineConfig({
 		// on demand through `npm run test:net` instead of the default suite.
 		exclude: [
 			...configDefaults.exclude,
-			"**/src/lib/__tests__/live.testnet.test.ts",
+			"**/src/lib/__tests__/*.testnet.test.ts",
 		],
 	},
 	build: {

@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react"
-import { isPayable, type Invoice } from "../domain/invoice"
-import { verifyPending } from "../lib/verify"
+import { type Invoice } from "../domain/invoice"
+import { awaitsSettlement, verifyPending } from "../lib/verify"
 
 /** How often the background monitor queries Horizon for pending invoices. */
 export const MONITOR_INTERVAL_MS = 20_000
 
 /**
- * Background settlement monitor (FR-05): while at least one invoice is still
- * pending, query Horizon on a fixed interval and push confirmed transitions
+ * Background settlement monitor (FR-05): while at least one invoice still
+ * awaits settlement (unsettled, at most EXPIRY_GRACE_MS past expiry), query
+ * Horizon on a fixed interval and push confirmed transitions
  * back to the caller.
  *
  * The poll runs only while the document is visible and never overlaps two
@@ -25,7 +26,7 @@ export function useSettlementMonitor(
 	invoicesRef.current = invoices
 	onInvoicesRef.current = onInvoices
 
-	const hasPending = invoices.some((invoice) => isPayable(invoice))
+	const hasPending = invoices.some((invoice) => awaitsSettlement(invoice))
 
 	useEffect(() => {
 		if (!hasPending) return

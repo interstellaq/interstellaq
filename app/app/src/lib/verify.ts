@@ -5,27 +5,59 @@
  * replay protection).
  */
 
-import { isPayable, type Invoice } from "../domain/invoice"
+import { type Invoice } from "../domain/invoice"
 import { isTxHashUsed, saveInvoice } from "./persistence"
-import { verifySettlement, type VerifyResult } from "./stellar"
+import {
+	type EvidenceSource,
+	verifySettlement,
+	type VerifyResult,
+} from "./stellar"
+
+/**
+ * How long after expiry the background monitor keeps checking an unsettled
+ * invoice, so a payment confirmed just before the deadline and indexed late
+ * still settles without user action. Manual verification has no such limit.
+ */
+export const EXPIRY_GRACE_MS = 5 * 60_000
+
+/**
+ * True while the background monitor should query Horizon for an invoice:
+ * it is not settled and its expiry is less than EXPIRY_GRACE_MS ago.
+ */
+export function awaitsSettlement(
+	invoice: Invoice,
+	now: number = Date.now(),
+): boolean {
+	return (
+		invoice.status !== "settled" && now < invoice.expiresAt + EXPIRY_GRACE_MS
+	)
+}
 
 export type VerificationOutcome =
 	| { kind: "settled"; invoice: Invoice }
 	| { kind: "unchanged"; result: VerifyResult }
+	/**
+	 * Horizon evidence settles the invoice but the browser store could not
+	 * record it. Nothing is reported as settled; a later check retries.
+	 */
+	| { kind: "not_persisted"; txHash: string }
 
 /**
  * Run settlement verification for an invoice and, on success, update the
  * stored record. The update is idempotent: re-verifying a settled invoice
  * returns it unchanged, and a transaction already used by another invoice
- * never settles this one.
+ * never settles this one. Expired invoices are still verified: on-chain
+ * ledger time decides whether the payment arrived in time. A settlement is
+ * reported only after it was persisted.
  */
 export async function verifyAndUpdate(
 	invoice: Invoice,
+	source?: EvidenceSource,
 ): Promise<VerificationOutcome> {
 	if (invoice.status === "settled") {
 		return { kind: "settled", invoice }
 	}
-	const result = await verifySettlement(invoice)
+	const result = await verifySettlement(invoice, Date.now(), source)
 	if (!result.settled) {
 		return { kind: "unchanged", result }
 	}
@@ -41,23 +73,30 @@ export async function verifyAndUpdate(
 		txHash: result.txHash,
 		verifiedAt: Date.now(),
 	}
-	saveInvoice(invoice.recipient, updated)
+	if (!saveInvoice(invoice.recipient, updated)) {
+		return { kind: "not_persisted", txHash: result.txHash }
+	}
 	return { kind: "settled", invoice: updated }
 }
 
 /**
- * Verify every invoice that is still pending and return the list with the
- * confirmed transitions applied. Settled and expired invoices are skipped,
- * so a background poll never re-queries evidence the UI already resolved.
+ * Verify every invoice that still awaits settlement and return the list with
+ * the confirmed transitions applied. Settled invoices and invoices expired
+ * for longer than EXPIRY_GRACE_MS are skipped, so a background poll never
+ * re-queries evidence the UI already resolved.
  *
  * Returns the same array reference when nothing changed, which lets callers
  * compare identities to decide whether a re-render is needed.
  */
-export async function verifyPending(invoices: Invoice[]): Promise<Invoice[]> {
-	const pending = invoices.filter((invoice) => isPayable(invoice))
+export async function verifyPending(
+	invoices: Invoice[],
+	source?: EvidenceSource,
+): Promise<Invoice[]> {
+	const now = Date.now()
+	const pending = invoices.filter((invoice) => awaitsSettlement(invoice, now))
 	if (pending.length === 0) return invoices
 	const outcomes = await Promise.all(
-		pending.map((invoice) => verifyAndUpdate(invoice)),
+		pending.map((invoice) => verifyAndUpdate(invoice, source)),
 	)
 	const confirmed = new Map<string, Invoice>()
 	pending.forEach((invoice, index) => {

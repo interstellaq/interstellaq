@@ -65,10 +65,32 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 				addNotification("Liquidación confirmada en Testnet.", "success")
 				return
 			}
+			if (outcome.kind === "not_persisted") {
+				addNotification(
+					"El pago está confirmado en Testnet, pero no se pudo guardar la liquidación en este navegador. Libera espacio de almacenamiento e intenta de nuevo.",
+					"error",
+				)
+				return
+			}
 			if (outcome.result.settled) return
 			switch (outcome.result.reason) {
 				case "expired":
-					addNotification("La factura ya expiró.", "warning")
+					addNotification(
+						"La factura expiró sin un pago confirmado antes del vencimiento.",
+						"warning",
+					)
+					break
+				case "incomplete":
+					addNotification(
+						"No se encontró el pago en las transacciones recientes revisadas. La búsqueda en Testnet es acotada y no cubre todo el historial de la cuenta.",
+						"warning",
+					)
+					break
+				case "invalid_invoice":
+					addNotification(
+						"Los datos de esta factura no son válidos y no pueden verificarse.",
+						"error",
+					)
 					break
 				case "network_error":
 					addNotification(
@@ -146,7 +168,7 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 						<button
 							type="button"
 							onClick={() => void verify()}
-							disabled={verifying || status === "expired"}
+							disabled={verifying}
 						>
 							{verifying ? "Verificando..." : "Verificar estado"}
 						</button>
@@ -184,7 +206,9 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 					)}
 					{status === "expired" && (
 						<p className="iq-warning">
-							Esta factura expiró y ya no puede pagarse.
+							Esta factura expiró y ya no puede pagarse. Si el pago se confirmó
+							en Testnet antes del vencimiento, Verificar estado aún puede
+							liquidarla.
 						</p>
 					)}
 				</section>

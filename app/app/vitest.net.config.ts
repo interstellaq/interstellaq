@@ -9,5 +9,7 @@ export default defineConfig({
 		exclude: [],
 		testTimeout: 120_000,
 		hookTimeout: 120_000,
+		// Show the evidence log (accounts, hashes, results) of passing tests.
+		silent: false,
 	},
 })

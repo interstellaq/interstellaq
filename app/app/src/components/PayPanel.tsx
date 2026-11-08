@@ -89,7 +89,18 @@ export function PayPanel({ invoice, onUpdated }: PayPanelProps) {
 					addNotification("Pago verificado y liquidado.", "success")
 					return
 				}
-				if (!outcome.result.settled && outcome.result.reason === "expired") {
+				if (outcome.kind === "not_persisted") {
+					addNotification(
+						"El pago está confirmado en Testnet, pero no se pudo guardar la liquidación en este navegador. Usa Verificar estado cuando haya espacio de almacenamiento.",
+						"error",
+					)
+					return
+				}
+				if (
+					!outcome.result.settled &&
+					(outcome.result.reason === "expired" ||
+						outcome.result.reason === "invalid_invoice")
+				) {
 					break
 				}
 				if (attempt < VERIFY_ATTEMPTS - 1) await sleep(VERIFY_DELAY_MS)

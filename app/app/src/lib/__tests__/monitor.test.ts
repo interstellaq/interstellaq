@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { type Invoice } from "../../domain/invoice"
 import { isTxHashUsed, saveInvoice } from "../persistence"
 import { verifySettlement } from "../stellar"
-import { verifyPending } from "../verify"
+import { EXPIRY_GRACE_MS, verifyPending } from "../verify"
 
 vi.mock("../stellar", () => ({
 	verifySettlement: vi.fn(),
@@ -43,6 +43,8 @@ describe("verifyPending", () => {
 		verifySettlementMock.mockResolvedValue({
 			settled: true,
 			txHash: "b".repeat(64),
+			operationId: "1001",
+			ledgerClosedAt: new Date(NOW).toISOString(),
 		})
 
 		const result = await verifyPending([pending, alreadySettled])
@@ -68,18 +70,33 @@ describe("verifyPending", () => {
 		expect(saveInvoice).not.toHaveBeenCalled()
 	})
 
-	it("skips settled and expired invoices entirely", async () => {
+	it("skips settled invoices and those expired beyond the grace period", async () => {
 		const settled = makeInvoice({
 			status: "settled",
 			txHash: "a".repeat(64),
 		})
-		const expired = makeInvoice({ expiresAt: NOW - 1_000 })
+		const expired = makeInvoice({
+			expiresAt: NOW - EXPIRY_GRACE_MS - 1_000,
+		})
 
 		const result = await verifyPending([settled, expired])
 
 		expect(result[0]).toBe(settled)
 		expect(result[1]).toBe(expired)
 		expect(verifySettlementMock).not.toHaveBeenCalled()
+	})
+
+	it("still checks an invoice that expired within the grace period", async () => {
+		const recentlyExpired = makeInvoice({ expiresAt: NOW - 1_000 })
+		verifySettlementMock.mockResolvedValue({
+			settled: false,
+			reason: "expired",
+		})
+
+		const result = await verifyPending([recentlyExpired])
+
+		expect(result[0]).toBe(recentlyExpired)
+		expect(verifySettlementMock).toHaveBeenCalledTimes(1)
 	})
 
 	it("keeps a verification_failed invoice pending until it matches", async () => {
@@ -100,6 +117,8 @@ describe("verifyPending", () => {
 		verifySettlementMock.mockResolvedValue({
 			settled: true,
 			txHash: "c".repeat(64),
+			operationId: "1001",
+			ledgerClosedAt: new Date(NOW).toISOString(),
 		})
 		vi.mocked(isTxHashUsed).mockReturnValue(true)
 
