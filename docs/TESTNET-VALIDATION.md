@@ -12,6 +12,7 @@ que no pertenezcan al operador de la demo.
 | Crear una factura XLM con referencia y expiración válidas | `expiry.test.ts` | No para la validación estructural; sí en la demo completa. |
 | Generar y leer el payload QR | `handoff.test.ts` | Escanear el QR con un segundo dispositivo o navegador. |
 | Rechazar QR o almacenamiento manipulados | `handoff.test.ts` y `persistence.test.ts` | No; son casos negativos simulados. |
+| Generar el URI SEP-7 `pay` conforme a SEP-0007 (Testnet, memo, codificación) | `handoff.test.ts`, incluido el analizador SEP-7 de `@stellar/typescript-wallet-sdk` | Sí: interoperabilidad manual con una wallet identificada. **No verificada.** |
 | Conectar una cartera Stellar y revisar el pago | No automatizado | Sí, con una cartera Testnet controlada por el demostrador. |
 | Firmar y enviar un pago XLM nativo | No se ejecuta automáticamente | Sí, con autorización explícita del pagador. |
 | Verificar Horizon y marcar `settled` | `settlement.test.ts` usa evidencias simuladas | Sí, tras integrar la corrección de liquidación de la issue #3. |
@@ -93,6 +94,29 @@ liquidada.
 Para cada caso negativo, conservar el hash y el enlace de Horizon. No marcar
 la factura como liquidada manualmente ni interpretar una ausencia temporal de
 Horizon como prueba de rechazo.
+
+## Interoperabilidad SEP-7 (manual)
+
+El URI SEP-7 es un camino experimental (ver ADR 0002). Mientras ninguna wallet
+supere esta prueba, el botón permanece plegado y marcado como experimental, y
+la demo usa el flujo con Wallets Kit.
+
+Requiere autorización explícita para cada pago, con cuentas efímeras o de
+demostración y nunca en Mainnet.
+
+1. Abrir el URI en la wallet elegida y registrar el nombre y la versión de la
+   wallet y del sistema.
+2. Antes de firmar, confirmar que la wallet muestra **Testnet**, el destino
+   completo, el monto y el memo. **Si muestra la red pública o no muestra la
+   red, abortar sin firmar.**
+3. Firmar y enviar. Registrar el hash y el enlace de Stellar Expert, el tipo
+   de operación que construyó la wallet (`payment` o *path payment*) y el
+   resultado de "Verificar estado". Un *path payment* no liquida la factura.
+4. Caso negativo: comprobar que una wallet que no reconoce
+   `network_passphrase` no termina construyendo un pago en Mainnet. Si lo
+   hace, el botón no debe mostrarse.
+
+Resultado actual: **no ejecutada; ninguna wallet verificada.**
 
 ## Registro de resultados
 

@@ -41,7 +41,7 @@ La expiración se juzga con la hora de cierre del ledger de la transacción, no 
 
 `expiresAt` procede del reloj del navegador que creó la factura, mientras que la hora del ledger procede de la red. Un desfase del reloj del comercio desplaza el vencimiento efectivo en la misma magnitud; se acepta para el MVP.
 
-El pago construido dentro de la aplicación lleva límites temporales coherentes con esta regla (`paymentMaxTime`): su `maxTime` es el menor entre 10 minutos desde el momento de construirlo y `ceil(expiresAt / 1000) − 1`, el último segundo de ledger que todavía liquida la factura (las horas de cierre son segundos enteros y una transacción es válida mientras `closeTime ≤ maxTime`). Así la red rechaza con `tx_too_late` un pago que llegaría tarde, en lugar de mover fondos que nunca liquidarán la factura. La aplicación no construye pagos para una factura que ya expiró según el reloj local. El URI SEP-7 `pay` no admite límites temporales, por lo que ese camino conserva el riesgo de un pago confirmado después del vencimiento.
+El pago construido dentro de la aplicación lleva límites temporales coherentes con esta regla (`paymentMaxTime`): su `maxTime` es el menor entre 10 minutos desde el momento de construirlo y `ceil(expiresAt / 1000) − 1`, el último segundo de ledger que todavía liquida la factura (las horas de cierre son segundos enteros y una transacción es válida mientras `closeTime ≤ maxTime`). Así la red rechaza con `tx_too_late` un pago que llegaría tarde, en lugar de mover fondos que nunca liquidarán la factura. La aplicación no construye pagos para una factura que ya expiró según el reloj local. El URI SEP-7 `pay` no admite límites temporales, por lo que ese camino conserva el riesgo de un pago confirmado después del vencimiento. Para acotarlo, la aplicación deja de ofrecer el URI cuando quedan menos de 5 minutos para el vencimiento (`SEP7_MIN_REMAINING_MS`); el riesgo se reduce, pero no desaparece.
 
 #### Búsqueda acotada en Horizon
 
@@ -75,7 +75,36 @@ Las lecturas entre dispositivos se resuelven con el payload del QR: la URL de la
 Dos caminos de entrega, ambos sin custodia:
 
 1. Dentro de la aplicación: el Stellar Wallets Kit (ya provisto por Scaffold Stellar) conecta la billetera del pagador, la aplicación construye el pago sin firmar, la billetera lo firma y la aplicación lo envía. Este es el camino de la demo y el que se ejercita de extremo a extremo.
-2. SEP-7: el detalle de la factura expone un URI `web+stellar://pay` con destino, activo, monto, memo, tipo de memo y red, para billeteras que registren el manejador de protocolo.
+2. SEP-7 (experimental): el detalle de la factura ofrece, plegado y marcado como experimental, un URI SEP-0007 (v2.1.0) de la operación `pay` para billeteras que registren el manejador de protocolo. No sustituye al QR principal, que sigue codificando el enlace de la aplicación (`buildInvoiceUrl`).
+
+#### Formato del URI SEP-7
+
+`buildSep7PayUri` genera:
+
+```
+web+stellar:pay?destination=<G…>&amount=<monto>&memo=<referencia>&memo_type=MEMO_TEXT&network_passphrase=Test%20SDF%20Network%20%3B%20September%202015[&msg=<concepto>]
+```
+
+- El esquema es `web+stellar:pay`, sin barras.
+- El activo es XLM nativo porque se omiten `asset_code` y `asset_issuer`.
+- `memo_type=MEMO_TEXT` y `memo` es la referencia de la factura, sin cambios.
+- `destination` y `amount` son los de la factura; el monto no se convierte a número.
+- `network_passphrase` siempre está presente y decodifica a `Test SDF Network ; September 2015`. SEP-0007 asume la red pública cuando falta.
+- `msg`, opcional, lleva el concepto de la factura. Es texto fuera de la cadena y no sustituye al memo.
+- Cada valor se codifica con `encodeURIComponent` (espacio como `%20`, no `+`), de modo que `decodeURIComponent` y `URLSearchParams` obtienen el mismo valor.
+- No se usan `callback`, `origin_domain` ni `signature`: firmar la solicitud exige un dominio con `stellar.toml`.
+
+No se genera URI para una factura estructuralmente inválida, liquidada o expirada, ni cuando quedan menos de 5 minutos para el vencimiento.
+
+#### Riesgos residuales del camino SEP-7
+
+- Red: una billetera que ignore `network_passphrase` podría construir el pago en la red pública. La interfaz pide no firmar si la billetera muestra la red pública o no muestra la red.
+- Path payments: `pay` permite a la billetera entregar el importe con un *path payment*. La regla de liquidación solo acepta un `payment` nativo, por lo que ese pago no liquida la factura. Aceptar *path payments* sería un cambio de esta regla y queda fuera del alcance.
+- Vencimiento: `pay` no lleva límites temporales (ver Expiración).
+
+#### Interoperabilidad
+
+No verificada. Ninguna billetera ha superado todavía la prueba manual de `docs/TESTNET-VALIDATION.md`, por lo que el botón permanece plegado y marcado como experimental, y el camino recomendado es la firma con Wallets Kit. La conformidad del URI se comprueba en las pruebas unitarias con el analizador SEP-7 de `@stellar/typescript-wallet-sdk`; eso demuestra conformidad estructural, no compatibilidad con una billetera concreta.
 
 ### Registro de comercio: transacción sin efecto firmada
 
