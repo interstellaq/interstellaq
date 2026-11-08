@@ -50,7 +50,14 @@ describe("live Testnet settlement", () => {
 		expect(hash).toHaveLength(64)
 
 		const result = await verifySettlement(invoice)
-		expect(result).toEqual({ settled: true, txHash: hash })
+		expect(result).toMatchObject({ settled: true, txHash: hash })
+		if (!result.settled) throw new Error("payment did not settle")
+		// The satisfying operation is identified explicitly, and the ledger
+		// close time is real Horizon evidence earlier than the invoice expiry.
+		expect(result.operationId).toMatch(/^\d+$/)
+		const closedAt = Date.parse(result.ledgerClosedAt)
+		expect(Number.isFinite(closedAt)).toBe(true)
+		expect(closedAt).toBeLessThan(invoice.expiresAt)
 	}, 90_000)
 
 	it("does not settle an invoice when the amount differs", async () => {

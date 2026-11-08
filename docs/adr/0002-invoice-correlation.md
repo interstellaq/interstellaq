@@ -2,7 +2,7 @@
 
 - Estado: Aceptado
 - Fecha: 2026-11-07
-- Actualizado: 2026-11-08 (issue #3: reglas de correlación y liquidación en Horizon)
+- Actualizado: 2026-11-08 (issue #3: reglas de correlación y liquidación en Horizon, y correcciones de la revisión del PR #7)
 - Reemplaza: las decisiones abiertas del ADR 0001 y de docs/ARCHITECTURE.md
 
 ## Contexto
@@ -19,6 +19,8 @@ Las facturas se denominan solo en XLM nativo. XLM no necesita trustline, emisor 
 
 Cada factura lleva una referencia única con la forma `ISQ` más 10 caracteres base32 aleatorios (13 bytes ASCII, muy dentro del límite de 28 bytes del memo de texto). La transacción de pago adjunta la referencia como memo de texto.
 
+Antes de consultar Horizon, la factura debe superar la validación estructural del ADR 0003 (`validateInvoiceData` con identificador obligatorio). Una factura inválida nunca se liquida y la verificación devuelve `invalid_invoice` sin hacer peticiones. Además, `loadInvoices` y `getInvoice` descartan los registros almacenados que no superan esa validación o cuyo estado no es `active`, `settled` ni `verification_failed`, de modo que el panel y su monitor solo verifican facturas bien formadas.
+
 La verificación compara cada transacción de Horizon que lleva la referencia contra todos los siguientes criterios (`evaluateTransaction` en `app/app/src/lib/stellar.ts`):
 
 - la transacción es exitosa, y también lo es cada una de sus operaciones;
@@ -28,7 +30,7 @@ La verificación compara cada transacción de Horizon que lleva la referencia co
 - el destinatario no es el origen de la transacción ni el origen efectivo de ninguna operación. El origen efectivo es el `source_account` propio de la operación o, si no lo tiene, el de la transacción (Horizon ya lo resuelve en cada registro de operación). Así un comercio no puede liquidar su propia factura ni con una transacción enviada por un tercero cuya operación de pago tenga como origen la cuenta del comercio, ni añadiendo una operación propia (por ejemplo, una devolución) junto a un pago válido;
 - exactamente una operación acredita al destinatario (`payment`, `path_payment_strict_receive`, `path_payment_strict_send`, `create_account` o `account_merge` hacia su cuenta), y esa operación es un `payment` en XLM nativo por el monto exacto de la factura, comparado en stroops. Esa operación queda identificada por su id de Horizon en el resultado de la verificación. Dos créditos al destinatario en la misma transacción se rechazan por ambiguos, aunque uno de ellos coincida.
 
-Como las referencias son aleatorias (50 bits de entropía) y la unicidad también se aplica por tienda de comercio al guardar, una transacción nunca puede satisfacer dos facturas. La verificación es idempotente: volver a ejecutarla para una factura ya liquidada devuelve el resultado almacenado, y un hash de transacción ya reclamado por otra factura del mismo almacén se rechaza (`isTxHashUsed` en `app/app/src/lib/verify.ts`).
+Como las referencias son aleatorias (50 bits de entropía) y la unicidad también se aplica por tienda de comercio al guardar, una transacción nunca puede satisfacer dos facturas. La verificación es idempotente: volver a ejecutarla para una factura ya liquidada devuelve el resultado almacenado, y un hash de transacción ya reclamado por otra factura del mismo almacén se rechaza (`isTxHashUsed` en `app/app/src/lib/verify.ts`). Una liquidación solo se informa después de persistirla: si `localStorage` no acepta la escritura, la verificación devuelve `not_persisted`, la factura sigue pendiente y una verificación posterior lo reintenta.
 
 #### Expiración
 
@@ -39,14 +41,23 @@ La expiración se juzga con la hora de cierre del ledger de la transacción, no 
 
 `expiresAt` procede del reloj del navegador que creó la factura, mientras que la hora del ledger procede de la red. Un desfase del reloj del comercio desplaza el vencimiento efectivo en la misma magnitud; se acepta para el MVP.
 
+El pago construido dentro de la aplicación lleva límites temporales coherentes con esta regla (`paymentMaxTime`): su `maxTime` es el menor entre 10 minutos desde el momento de construirlo y `ceil(expiresAt / 1000) − 1`, el último segundo de ledger que todavía liquida la factura (las horas de cierre son segundos enteros y una transacción es válida mientras `closeTime ≤ maxTime`). Así la red rechaza con `tx_too_late` un pago que llegaría tarde, en lugar de mover fondos que nunca liquidarán la factura. La aplicación no construye pagos para una factura que ya expiró según el reloj local. El URI SEP-7 `pay` no admite límites temporales, por lo que ese camino conserva el riesgo de un pago confirmado después del vencimiento.
+
 #### Búsqueda acotada en Horizon
 
 La verificación recorre las transacciones de la cuenta del destinatario de la más reciente a la más antigua, en páginas de 200 registros (máximo de Horizon) encadenadas por `paging_token`, y solo pide las operaciones de las transacciones cuyo memo de texto coincide con la referencia. La búsqueda termina:
 
-- con cobertura completa, cuando una página trae menos de 200 registros (fin del historial) o cuando su registro más antiguo es anterior a `createdAt` menos 5 minutos de tolerancia por desfase de reloj (`CLOCK_SKEW_TOLERANCE_MS`), porque la referencia no existía antes de la factura;
-- con cobertura incompleta, al agotar 5 páginas (1000 transacciones, `MAX_TRANSACTION_PAGES`).
+- con cobertura completa, solo cuando una página trae menos de 200 registros, es decir, cuando se alcanzó el final del historial de la cuenta que sirve Horizon;
+- con cobertura incompleta, al agotar 5 páginas completas (1000 transacciones, `MAX_TRANSACTION_PAGES`).
 
-Si se encuentra un pago válido, la factura se liquida con independencia de la cobertura; si hay varios, se elige el de cierre de ledger más temprano. Sin pago válido, una búsqueda incompleta devuelve `incomplete` y nunca `no_match` ni `expired`: la aplicación no afirma la ausencia de un pago que no ha podido descartar. Una búsqueda completa devuelve `expired` si la factura ya venció y `no_match` en caso contrario.
+Las marcas de tiempo no se usan para declarar cobertura. Una versión anterior daba la búsqueda por completa al alcanzar transacciones anteriores a `createdAt` menos 5 minutos, porque la referencia no existía antes de la factura. Esa garantía depende de que el reloj del navegador que creó la factura no vaya adelantado más que la tolerancia, algo que la aplicación no puede comprobar (en el dispositivo del pagador, `createdAt` llega incluso desde el QR). Con un reloj adelantado 10 minutos, un pago válido quedaba fuera y la verificación respondía `no_match`. Ampliar la tolerancia solo desplaza el supuesto. Un ancla verificable en cadena (por ejemplo, el `paging_token` del último ledger registrado al crear la factura) permitiría detener la búsqueda antes con garantía, pero exige cambiar el modelo de factura y el payload QR; queda como mejora posterior.
+
+Resultado de la búsqueda:
+
+- Si entre las transacciones examinadas hay pagos válidos, la factura se liquida con el confirmado primero, según este orden total: hora de cierre del ledger, después `paging_token` comparado numéricamente (secuencia de ledger y orden de aplicación dentro del ledger) y, si no es utilizable, el hash. El resultado no depende del orden en que Horizon devolvió los registros.
+- Con una búsqueda incompleta puede existir un pago válido anterior que no se examinó. En ese caso se registra el más temprano de los examinados; ambos pagos llevan la referencia de esta factura, por lo que ninguno puede liquidar otra.
+- Sin pago válido, una búsqueda incompleta devuelve `incomplete` y nunca `no_match` ni `expired`: la aplicación no afirma la ausencia de un pago que no ha podido descartar. Una búsqueda completa devuelve `expired` si la factura ya venció y `no_match` en caso contrario.
+- La garantía de cobertura completa supone que Horizon sirve todo el historial de la cuenta. Un Horizon con retención limitada podría terminar el historial antes y la búsqueda se declararía completa sin serlo.
 
 Alternativas consideradas:
 
@@ -78,5 +89,6 @@ El registro envía una operación `bumpSequence` a la secuencia actual de la cue
 - El estado de la factura no sobrevive a un borrado del navegador ni se mueve entre dispositivos salvo a través del payload del QR; un backend compartido es una decisión posterior al MVP.
 - La ruta Soroban (backlog M3) sigue disponible si las reglas de liquidación programables se convierten en un requisito.
 - Solo un `payment` nativo liquida una factura. Pagos de ruta, operaciones Soroban o reclamos de saldos reclamables no se reconocen aunque entreguen XLM, y una transacción que combine el pago con otro crédito al comercio se rechaza; el comercio tendría que conciliarla manualmente.
-- Para una cuenta con más de 1000 transacciones posteriores a la creación de la factura, un pago antiguo puede quedar fuera de la búsqueda; la verificación lo indica como búsqueda incompleta en lugar de rechazarlo. Un indexador o backend propio queda fuera del alcance del MVP.
+- Para una cuenta con más de 1000 transacciones en total, una verificación sin pago encontrado devuelve siempre `incomplete`, nunca `no_match` ni `expired`, y lee 5 páginas por consulta. Un pago confirmado a tiempo deja de encontrarse cuando se acumulan más de 1000 transacciones posteriores; la verificación lo indica como búsqueda incompleta en lugar de rechazarlo. Un indexador o backend propio queda fuera del alcance del MVP.
+- Cada factura pendiente realiza su propia búsqueda en cada ciclo del monitor. En cuentas con mucho historial, varias facturas pendientes multiplican las peticiones y pueden alcanzar el límite de tasa de Horizon, lo que se presenta como `network_error`, nunca como liquidación. Compartir una búsqueda por destinatario queda como mejora posterior.
 - Las reglas se prueban con respuestas de Horizon simuladas. La comprobación en Testnet es manual y posterior (`npm run test:net`, a demanda); CI no ejecuta pagos reales.

@@ -4,10 +4,16 @@
  * records with cursors, and per-transaction operation records. No network,
  * no signing, no real payments.
  */
-import { Keypair } from "@stellar/stellar-sdk"
+import {
+	Account,
+	Keypair,
+	Networks,
+	type Transaction,
+	TransactionBuilder,
+} from "@stellar/stellar-sdk"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { type Invoice } from "../../domain/invoice"
-import { getInvoice, saveInvoice } from "../persistence"
+import { getInvoice, loadInvoices, saveInvoice } from "../persistence"
 import {
 	type EvidenceSource,
 	fetchSettlementEvidence,
@@ -15,8 +21,11 @@ import {
 	horizonEvidenceSource,
 	type HorizonOperation,
 	type HorizonTransaction,
+	buildPaymentTransaction,
 	HORIZON_PAGE_LIMIT,
 	MAX_TRANSACTION_PAGES,
+	PAYMENT_TIMEOUT_SECONDS,
+	paymentMaxTime,
 	verifySettlement,
 } from "../stellar"
 import { EXPIRY_GRACE_MS, verifyAndUpdate, verifyPending } from "../verify"
@@ -149,13 +158,22 @@ class SimulatedHorizon implements EvidenceSource {
 	): Promise<HorizonTransaction[]> {
 		expect(accountId).toBe(MERCHANT)
 		this.transactionCalls.push(cursor)
-		const start =
+		const index =
 			cursor === undefined
-				? 0
-				: this.history.findIndex((tx) => tx.record.paging_token === cursor) + 1
+				? -1
+				: this.history.findIndex((tx) => tx.record.paging_token === cursor)
+		if (cursor !== undefined && index === -1) {
+			throw new Error(`unknown cursor ${cursor}`)
+		}
+		const start = index + 1
 		return Promise.resolve(
 			this.history.slice(start, start + limit).map((tx) => tx.record),
 		)
+	}
+
+	/** Paging token of the record at `index`, newest first. */
+	tokenAt(index: number): string | undefined {
+		return this.history[index]?.record.paging_token
 	}
 
 	operations(txHash: string): Promise<HorizonOperation[]> {
@@ -188,10 +206,14 @@ describe("bounded Horizon pagination", () => {
 			txHash: payment.record.hash,
 			operationId: "900001",
 		})
-		// Pages 1-3: the third page reaches history older than the invoice.
-		expect(horizonSim.transactionCalls).toHaveLength(3)
-		expect(horizonSim.transactionCalls[0]).toBeUndefined()
-		expect(horizonSim.transactionCalls[1]).toBeDefined()
+		// 750 records: three full pages and a short fourth one that ends the
+		// history. Each page continues from the oldest record of the previous.
+		expect(horizonSim.transactionCalls).toEqual([
+			undefined,
+			horizonSim.tokenAt(199),
+			horizonSim.tokenAt(399),
+			horizonSim.tokenAt(599),
+		])
 		// Operations are only fetched for the transaction carrying the memo.
 		expect(horizonSim.operationCalls).toEqual([payment.record.hash])
 	})
@@ -222,35 +244,82 @@ describe("bounded Horizon pagination", () => {
 		).toEqual({ settled: false, reason: "incomplete" })
 	})
 
-	it("stops after one page once it reaches transactions older than the invoice", async () => {
+	it("never declares coverage from timestamps older than the invoice", async () => {
+		// 1250 records, most of them long before the invoice: only reaching
+		// the end of the history could prove absence, and the budget ends first.
 		const horizonSim = new SimulatedHorizon([
 			...activity(50, T0 + 100 * SECOND),
 			...activity(1200, T0 - 10 * MINUTE),
 		])
+		const invoice = makeInvoice()
+
+		const evidence = await fetchSettlementEvidence(invoice, horizonSim)
+
+		expect(evidence.complete).toBe(false)
+		expect(horizonSim.transactionCalls).toHaveLength(MAX_TRANSACTION_PAGES)
+		expect(await verifySettlement(invoice, T0, horizonSim)).toEqual({
+			settled: false,
+			reason: "incomplete",
+		})
+		expect(
+			await verifySettlement(invoice, invoice.expiresAt + MINUTE, horizonSim),
+		).toEqual({ settled: false, reason: "incomplete" })
+	})
+
+	it("finds a payment confirmed before the stored createdAt of a fast clock", async () => {
+		// Regression (audit P4): the merchant clock ran 10 minutes ahead, so the
+		// stored createdAt is later than the real creation. A full first page
+		// ends with a transaction older than createdAt - 5 min; the payment is
+		// on page 2 and must still be found.
+		const realCreation = T0
+		const invoice = makeInvoice({
+			createdAt: realCreation + 10 * MINUTE,
+			expiresAt: realCreation + 40 * MINUTE,
+		})
+		const payment = invoicePayment(realCreation + MINUTE)
+		const horizonSim = new SimulatedHorizon([
+			...activity(199, realCreation + 15 * MINUTE),
+			filler(realCreation + 4 * MINUTE),
+			payment,
+			...activity(50, realCreation + MINUTE - SECOND),
+		])
+
+		expect(
+			await verifySettlement(invoice, realCreation + 11 * MINUTE, horizonSim),
+		).toMatchObject({ settled: true, txHash: payment.record.hash })
+		expect(horizonSim.transactionCalls).toHaveLength(2)
+	})
+
+	it("reports incomplete for a fast clock when the payment is beyond the budget", async () => {
+		const realCreation = T0
+		const invoice = makeInvoice({
+			createdAt: realCreation + 10 * MINUTE,
+			expiresAt: realCreation + 40 * MINUTE,
+		})
+		const horizonSim = new SimulatedHorizon([
+			...activity(1000, realCreation + 30 * MINUTE),
+			invoicePayment(realCreation + MINUTE),
+		])
+
+		expect(
+			await verifySettlement(invoice, invoice.expiresAt + MINUTE, horizonSim),
+		).toEqual({ settled: false, reason: "incomplete" })
+	})
+
+	it("declares coverage only at the end of the account history", async () => {
+		const horizonSim = new SimulatedHorizon([
+			...activity(50, T0 + 100 * SECOND),
+			...activity(300, T0 - 10 * MINUTE),
+		])
 
 		const evidence = await fetchSettlementEvidence(makeInvoice(), horizonSim)
 
-		expect(evidence.complete).toBe(true)
-		expect(horizonSim.transactionCalls).toHaveLength(1)
+		expect(evidence).toMatchObject({ complete: true, scanned: 350 })
+		expect(horizonSim.transactionCalls).toHaveLength(2)
 		expect(await verifySettlement(makeInvoice(), T0, horizonSim)).toEqual({
 			settled: false,
 			reason: "no_match",
 		})
-	})
-
-	it("keeps scanning within the clock skew margin before the invoice creation", async () => {
-		// The browser clock ran ahead: the ledger closed the payment two
-		// minutes before the stored createdAt.
-		const payment = invoicePayment(T0 - 2 * MINUTE)
-		const horizonSim = new SimulatedHorizon([
-			...activity(250, T0 + 300 * SECOND),
-			payment,
-			...activity(300, T0 - 10 * MINUTE),
-		])
-
-		expect(await verifySettlement(makeInvoice(), T0, horizonSim)).toMatchObject(
-			{ settled: true, txHash: payment.record.hash },
-		)
 	})
 
 	it("treats an exactly full last page followed by an empty one as complete", async () => {
@@ -352,12 +421,16 @@ describe("Horizon evidence rules", () => {
 
 describe("verification flow with local persistence", () => {
 	const storage = new Map<string, string>()
+	const storeKey = `interstellaq.invoices.${MERCHANT}`
+	let storageFull = false
 
 	beforeEach(() => {
 		storage.clear()
+		storageFull = false
 		vi.stubGlobal("localStorage", {
 			getItem: (key: string) => storage.get(key) ?? null,
 			setItem: (key: string, value: string) => {
+				if (storageFull) throw new Error("QuotaExceededError")
 				storage.set(key, value)
 			},
 		})
@@ -442,6 +515,157 @@ describe("verification flow with local persistence", () => {
 		vi.setSystemTime(invoice.expiresAt + EXPIRY_GRACE_MS - 1)
 		const [updated] = await verifyPending([invoice], horizonSim)
 		expect(updated?.status).toBe("settled")
+	})
+
+	it("does not report a settlement that could not be persisted", async () => {
+		vi.setSystemTime(T0 + 2 * MINUTE)
+		const invoice = makeInvoice()
+		saveInvoice(MERCHANT, invoice)
+		const before = storage.get(storeKey)
+		storageFull = true
+		const payment = invoicePayment(T0 + MINUTE)
+
+		const outcome = await verifyAndUpdate(
+			invoice,
+			new SimulatedHorizon([payment]),
+		)
+		const pending = await verifyPending(
+			[invoice],
+			new SimulatedHorizon([payment]),
+		)
+
+		expect(outcome).toEqual({
+			kind: "not_persisted",
+			txHash: payment.record.hash,
+		})
+		expect(pending).toEqual([invoice])
+		expect(storage.get(storeKey)).toBe(before)
+		expect(getInvoice(MERCHANT, invoice.id)?.status).toBe("active")
+	})
+
+	it("rejects an invalid invoice before querying Horizon", async () => {
+		vi.setSystemTime(T0 + 2 * MINUTE)
+		const horizonSim = new SimulatedHorizon([invoicePayment(T0 + MINUTE)])
+
+		for (const invalid of [
+			makeInvoice({ expiresAt: Number.NaN }),
+			makeInvoice({ reference: "" }),
+			makeInvoice({ id: "not-a-uuid" }),
+		]) {
+			expect(await verifyAndUpdate(invalid, horizonSim)).toEqual({
+				kind: "unchanged",
+				result: { settled: false, reason: "invalid_invoice" },
+			})
+		}
+		expect(horizonSim.transactionCalls).toHaveLength(0)
+	})
+
+	it("keeps tampered stored invoices away from the monitor", async () => {
+		vi.setSystemTime(T0 + 2 * MINUTE)
+		const valid = makeInvoice()
+		storage.set(
+			storeKey,
+			JSON.stringify([
+				valid,
+				{ ...valid, id: "2f6b5f8e-0000-4000-8000-0000000000b1", reference: "" },
+				{
+					...valid,
+					id: "2f6b5f8e-0000-4000-8000-0000000000b2",
+					reference: "ISQSECONDREF2",
+					expiresAt: null,
+				},
+				{
+					...valid,
+					id: "2f6b5f8e-0000-4000-8000-0000000000b3",
+					reference: "ISQTHIRDREF23",
+					status: "paid",
+				},
+				null,
+				"garbage",
+			]),
+		)
+
+		const loaded = loadInvoices(MERCHANT)
+		expect(loaded).toEqual([valid])
+
+		const horizonSim = new SimulatedHorizon([invoicePayment(T0 + MINUTE)])
+		const [updated] = await verifyPending(loaded, horizonSim)
+		expect(updated?.status).toBe("settled")
+		expect(horizonSim.transactionCalls).toHaveLength(1)
+	})
+
+	it("returns no invoices when the stored value is not a list", () => {
+		storage.set(storeKey, JSON.stringify({ not: "a list" }))
+		expect(loadInvoices(MERCHANT)).toEqual([])
+	})
+})
+
+describe("payment time bounds", () => {
+	const payer = CUSTOMER
+
+	afterEach(() => {
+		vi.useRealTimers()
+		vi.restoreAllMocks()
+	})
+
+	const build = async (invoice: Invoice, now: number) => {
+		vi.useFakeTimers({ toFake: ["Date"] })
+		vi.setSystemTime(now)
+		vi.spyOn(horizon, "loadAccount").mockResolvedValue(
+			new Account(payer, "100") as never,
+		)
+		const xdr = await buildPaymentTransaction(payer, invoice)
+		return TransactionBuilder.fromXDR(xdr, Networks.TESTNET) as Transaction
+	}
+
+	it("ends at the last ledger second that still settles the invoice", async () => {
+		// expiresAt falls inside a second: that second no longer settles.
+		const invoice = makeInvoice({
+			createdAt: T0 + 500,
+			expiresAt: T0 + 500 + 30 * MINUTE,
+		})
+		const now = invoice.expiresAt - 2 * MINUTE
+
+		const tx = await build(invoice, now)
+		const maxTime = Number(tx.timeBounds?.maxTime)
+
+		expect(maxTime).toBe(Math.ceil(invoice.expiresAt / 1000) - 1)
+		expect(maxTime * 1000).toBeLessThan(invoice.expiresAt)
+		expect((maxTime + 1) * 1000).toBeGreaterThanOrEqual(invoice.expiresAt)
+		expect(tx.memo.value?.toString()).toBe(REFERENCE)
+	})
+
+	it("keeps the 10 minute window when the invoice expires later", async () => {
+		const invoice = makeInvoice()
+		const tx = await build(invoice, T0)
+
+		expect(Number(tx.timeBounds?.maxTime)).toBe(
+			Math.floor(T0 / 1000) + PAYMENT_TIMEOUT_SECONDS,
+		)
+	})
+
+	it("refuses to build a payment for an expired invoice", async () => {
+		const invoice = makeInvoice()
+		await expect(build(invoice, invoice.expiresAt)).rejects.toThrow(
+			"La factura expiró",
+		)
+		expect(horizon.loadAccount).not.toHaveBeenCalled()
+		expect(paymentMaxTime(invoice, invoice.expiresAt)).toBeNull()
+	})
+
+	it("matches the settlement rule at every millisecond offset", () => {
+		for (let offset = 0; offset < 1000; offset += 37) {
+			const expiresAt = T0 + 30 * MINUTE + offset
+			const invoice = makeInvoice({
+				expiresAt,
+				createdAt: expiresAt - 30 * MINUTE,
+			})
+			const maxTime = paymentMaxTime(invoice, expiresAt - 60 * SECOND)
+			expect(maxTime).not.toBeNull()
+			// The last valid ledger second settles; the next one would not.
+			expect((maxTime as number) * 1000).toBeLessThan(expiresAt)
+			expect(((maxTime as number) + 1) * 1000).toBeGreaterThanOrEqual(expiresAt)
+		}
 	})
 })
 

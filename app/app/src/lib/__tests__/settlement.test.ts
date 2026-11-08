@@ -56,6 +56,7 @@ const makeTx = (
 		memo: "ISQABCDEFGHIJ",
 		sourceAccount: CUSTOMER,
 		ledgerClosedAt: iso(NOW + 60_000),
+		pagingToken: "4294967296",
 		operationCount: operations.length,
 		...overrides,
 		operations,
@@ -347,5 +348,93 @@ describe("matchSettlement", () => {
 			NOW,
 		)
 		expect(result).toEqual({ settled: false, reason: "no_match" })
+	})
+
+	it("never settles a structurally invalid invoice", () => {
+		const late = makeTx({ ledgerClosedAt: iso(NOW + 365 * 24 * 3_600_000) })
+		const invalid: Invoice[] = [
+			// Malformed expiry would otherwise disable the after_expiry rule.
+			makeInvoice({ expiresAt: Number.NaN }),
+			// An empty reference would match any empty text memo.
+			makeInvoice({ reference: "" }),
+			makeInvoice({ amount: "abc" }),
+			makeInvoice({ recipient: "GNOTAVALIDACCOUNT" }),
+			makeInvoice({ expiresAt: NOW + 7 * 60_000 }),
+		]
+		for (const invoice of invalid) {
+			expect(
+				matchSettlement(
+					invoice,
+					scan([late, makeTx({ memo: "", hash: "e".repeat(64) })]),
+					NOW,
+				),
+			).toEqual({ settled: false, reason: "invalid_invoice" })
+		}
+	})
+})
+
+describe("matchSettlement: deterministic choice among valid payments", () => {
+	const sameLedger = iso(NOW + 60_000)
+	// Paging tokens of two transactions applied in ledger 2: order 1 and 2.
+	const first = makeTx({
+		hash: "f".repeat(64),
+		ledgerClosedAt: sameLedger,
+		pagingToken: "8589938688",
+	})
+	const second = makeTx({
+		hash: "0".repeat(64),
+		ledgerClosedAt: sameLedger,
+		pagingToken: "8589942784",
+	})
+
+	it("picks the first applied transaction inside the same ledger", () => {
+		// Horizon returns newest first, so the later one comes first.
+		for (const order of [
+			[second, first],
+			[first, second],
+		]) {
+			expect(matchSettlement(makeInvoice(), scan(order), NOW)).toMatchObject({
+				settled: true,
+				txHash: first.hash,
+			})
+		}
+	})
+
+	it("compares paging tokens numerically, not as strings", () => {
+		const shortToken = makeTx({
+			hash: "1".repeat(64),
+			ledgerClosedAt: sameLedger,
+			pagingToken: "999999999",
+		})
+		const longToken = makeTx({
+			hash: "2".repeat(64),
+			ledgerClosedAt: sameLedger,
+			pagingToken: "1000000000",
+		})
+		expect(
+			matchSettlement(makeInvoice(), scan([longToken, shortToken]), NOW),
+		).toMatchObject({ txHash: shortToken.hash })
+	})
+
+	it("falls back to the hash when paging tokens are unusable", () => {
+		const a = makeTx({ hash: "3".repeat(64), pagingToken: "" })
+		const b = makeTx({ hash: "2".repeat(64), pagingToken: "x" })
+		expect(matchSettlement(makeInvoice(), scan([a, b]), NOW)).toMatchObject({
+			txHash: b.hash,
+		})
+	})
+
+	it("returns the earliest examined payment even when the scan is incomplete", () => {
+		const early = makeTx({
+			hash: "4".repeat(64),
+			ledgerClosedAt: iso(NOW + 10_000),
+		})
+		const late = makeTx({
+			hash: "5".repeat(64),
+			ledgerClosedAt: iso(NOW + 20_000),
+		})
+		expect(
+			matchSettlement(makeInvoice(), scan([late, early], false), NOW),
+		).toMatchObject({ settled: true, txHash: early.hash })
 	})
 })

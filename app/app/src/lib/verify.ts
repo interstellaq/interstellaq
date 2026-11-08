@@ -36,13 +36,19 @@ export function awaitsSettlement(
 export type VerificationOutcome =
 	| { kind: "settled"; invoice: Invoice }
 	| { kind: "unchanged"; result: VerifyResult }
+	/**
+	 * Horizon evidence settles the invoice but the browser store could not
+	 * record it. Nothing is reported as settled; a later check retries.
+	 */
+	| { kind: "not_persisted"; txHash: string }
 
 /**
  * Run settlement verification for an invoice and, on success, update the
  * stored record. The update is idempotent: re-verifying a settled invoice
  * returns it unchanged, and a transaction already used by another invoice
  * never settles this one. Expired invoices are still verified: on-chain
- * ledger time decides whether the payment arrived in time.
+ * ledger time decides whether the payment arrived in time. A settlement is
+ * reported only after it was persisted.
  */
 export async function verifyAndUpdate(
 	invoice: Invoice,
@@ -67,7 +73,9 @@ export async function verifyAndUpdate(
 		txHash: result.txHash,
 		verifiedAt: Date.now(),
 	}
-	saveInvoice(invoice.recipient, updated)
+	if (!saveInvoice(invoice.recipient, updated)) {
+		return { kind: "not_persisted", txHash: result.txHash }
+	}
 	return { kind: "settled", invoice: updated }
 }
 

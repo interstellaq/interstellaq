@@ -65,6 +65,13 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 				addNotification("Liquidación confirmada en Testnet.", "success")
 				return
 			}
+			if (outcome.kind === "not_persisted") {
+				addNotification(
+					"El pago está confirmado en Testnet, pero no se pudo guardar la liquidación en este navegador. Libera espacio de almacenamiento e intenta de nuevo.",
+					"error",
+				)
+				return
+			}
 			if (outcome.result.settled) return
 			switch (outcome.result.reason) {
 				case "expired":
@@ -77,6 +84,12 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 					addNotification(
 						"No se encontró el pago en las transacciones recientes revisadas. La búsqueda en Testnet es acotada y no cubre todo el historial de la cuenta.",
 						"warning",
+					)
+					break
+				case "invalid_invoice":
+					addNotification(
+						"Los datos de esta factura no son válidos y no pueden verificarse.",
+						"error",
 					)
 					break
 				case "network_error":

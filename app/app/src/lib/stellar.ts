@@ -48,14 +48,6 @@ export const HORIZON_PAGE_LIMIT = 200
  */
 export const MAX_TRANSACTION_PAGES = 5
 
-/**
- * Margin for a browser clock running ahead of ledger time. The scan stops
- * early once it reaches transactions older than the invoice creation minus
- * this margin: the reference did not exist before the invoice, so no older
- * transaction can carry it.
- */
-export const CLOCK_SKEW_TOLERANCE_MS = 5 * 60_000
-
 /** Operation types whose top-level `to` field is the credited account. */
 const PAYMENT_LIKE_TYPES = new Set([
 	"payment",
@@ -164,6 +156,11 @@ export interface TransactionEvidence {
 	sourceAccount: string
 	/** Ledger close time (ISO 8601) as reported by Horizon. */
 	ledgerClosedAt: string
+	/**
+	 * Horizon paging token: a decimal that orders transactions by ledger and
+	 * by application order inside the ledger.
+	 */
+	pagingToken: string
 	/** Operation count declared by the transaction. */
 	operationCount: number
 	operations: OperationEvidence[]
@@ -174,9 +171,8 @@ export interface SettlementEvidence {
 	/** Transactions carrying the invoice reference as text memo. */
 	transactions: TransactionEvidence[]
 	/**
-	 * True only when the scan reached the end of the account history or a
-	 * transaction older than the invoice; otherwise absence of a match proves
-	 * nothing.
+	 * True only when the scan reached the end of the account history served
+	 * by Horizon; otherwise absence of a match proves nothing.
 	 */
 	complete: boolean
 	/** Number of transaction records inspected. */
@@ -193,7 +189,12 @@ export type VerifyResult =
 	  }
 	| {
 			settled: false
-			reason: "no_match" | "expired" | "incomplete" | "network_error"
+			reason:
+				| "no_match"
+				| "expired"
+				| "incomplete"
+				| "invalid_invoice"
+				| "network_error"
 	  }
 
 /** Why a candidate transaction cannot settle an invoice. */
@@ -233,6 +234,7 @@ export function toTransactionEvidence(
 		memo: transaction.memo ?? null,
 		sourceAccount: transaction.source_account,
 		ledgerClosedAt: transaction.created_at,
+		pagingToken: transaction.paging_token,
 		operationCount: transaction.operation_count,
 		operations: operations.map((operation) => {
 			const paymentLike = PAYMENT_LIKE_TYPES.has(operation.type)
@@ -308,11 +310,37 @@ export function evaluateTransaction(
 	return { accepted: true, operationId: credit.id, ledgerClosedAt: closedAt }
 }
 
+const DECIMAL = /^\d+$/
+
+/**
+ * Total order of candidate transactions by confirmation: ledger close time,
+ * then Horizon paging token (ledger sequence and application order inside
+ * the ledger), then hash. Independent of the order Horizon returned them in.
+ */
+function confirmedBefore(
+	a: { closedAt: number; pagingToken: string; hash: string },
+	b: { closedAt: number; pagingToken: string; hash: string },
+): boolean {
+	if (a.closedAt !== b.closedAt) return a.closedAt < b.closedAt
+	if (
+		DECIMAL.test(a.pagingToken) &&
+		DECIMAL.test(b.pagingToken) &&
+		a.pagingToken !== b.pagingToken
+	) {
+		return BigInt(a.pagingToken) < BigInt(b.pagingToken)
+	}
+	return a.hash < b.hash
+}
+
 /**
  * Pure settlement decision over one bounded scan.
  *
- * - Any accepted transaction settles the invoice; when several qualify, the
- *   earliest by ledger close time is chosen so the result is deterministic.
+ * - An invoice that fails structural validation (docs/adr/0003) never
+ *   settles and yields `invalid_invoice`.
+ * - Any accepted transaction settles the invoice. When several of the
+ *   examined transactions qualify, the first confirmed one is chosen (see
+ *   confirmedBefore). With an incomplete scan an earlier, unexamined payment
+ *   may exist; the result is then the earliest among those examined.
  * - Without an accepted transaction, an incomplete scan yields `incomplete`:
  *   it never claims that no payment exists.
  * - A complete scan yields `expired` once the invoice expired, else
@@ -326,18 +354,25 @@ export function matchSettlement(
 	evidence: SettlementEvidence,
 	now: number = Date.now(),
 ): VerifyResult {
-	let best: { hash: string; operationId: string; closedAt: number } | null =
-		null
+	if (validateInvoiceData(invoice, { requireId: true }) !== null) {
+		return { settled: false, reason: "invalid_invoice" }
+	}
+	let best: {
+		hash: string
+		pagingToken: string
+		operationId: string
+		closedAt: number
+	} | null = null
 	for (const transaction of evidence.transactions) {
 		const verdict = evaluateTransaction(invoice, transaction)
 		if (!verdict.accepted) continue
-		if (best === null || verdict.ledgerClosedAt < best.closedAt) {
-			best = {
-				hash: transaction.hash,
-				operationId: verdict.operationId,
-				closedAt: verdict.ledgerClosedAt,
-			}
+		const candidate = {
+			hash: transaction.hash,
+			pagingToken: transaction.pagingToken,
+			operationId: verdict.operationId,
+			closedAt: verdict.ledgerClosedAt,
 		}
+		if (best === null || confirmedBefore(candidate, best)) best = candidate
 	}
 	if (best !== null) {
 		return {
@@ -357,16 +392,16 @@ export function matchSettlement(
  * Horizon cursors. Operations are fetched only for transactions whose text
  * memo equals the invoice reference.
  *
- * The scan stops, with `complete: true`, when a page is shorter than the page
- * limit (end of history) or when its oldest record predates the invoice
- * creation minus CLOCK_SKEW_TOLERANCE_MS. After MAX_TRANSACTION_PAGES pages
- * it stops with `complete: false`.
+ * The scan is complete only when a page is shorter than the page limit, that
+ * is, when it reached the end of the account history. Timestamps are never
+ * used to declare coverage: `createdAt` comes from a browser clock whose skew
+ * cannot be bounded, so "older than the invoice" is not a guarantee. After
+ * MAX_TRANSACTION_PAGES full pages the scan stops with `complete: false`.
  */
 export async function fetchSettlementEvidence(
 	invoice: Invoice,
 	source: EvidenceSource = horizonEvidenceSource,
 ): Promise<SettlementEvidence> {
-	const cutoff = invoice.createdAt - CLOCK_SKEW_TOLERANCE_MS
 	const transactions: TransactionEvidence[] = []
 	let cursor: string | undefined
 	let scanned = 0
@@ -391,10 +426,6 @@ export async function fetchSettlementEvidence(
 		if (oldest === undefined || records.length < HORIZON_PAGE_LIMIT) {
 			return { transactions, complete: true, scanned }
 		}
-		const oldestTime = Date.parse(oldest.created_at)
-		if (Number.isFinite(oldestTime) && oldestTime < cutoff) {
-			return { transactions, complete: true, scanned }
-		}
 		cursor = oldest.paging_token
 	}
 	return { transactions, complete: false, scanned }
@@ -403,6 +434,7 @@ export async function fetchSettlementEvidence(
 /**
  * Network-backed verification. On-chain evidence decides, including after
  * the invoice expired: a payment confirmed before expiry still settles.
+ * Structurally invalid invoices are rejected before querying Horizon.
  * Network failures resolve to `network_error` rather than throwing, so the
  * UI can show an actionable status without leaking internals (NFR-05).
  */
@@ -411,6 +443,9 @@ export async function verifySettlement(
 	now: number = Date.now(),
 	source: EvidenceSource = horizonEvidenceSource,
 ): Promise<VerifyResult> {
+	if (validateInvoiceData(invoice, { requireId: true }) !== null) {
+		return { settled: false, reason: "invalid_invoice" }
+	}
 	try {
 		const evidence = await fetchSettlementEvidence(invoice, source)
 		return matchSettlement(invoice, evidence, now)
@@ -419,10 +454,39 @@ export async function verifySettlement(
 	}
 }
 
+/** Validity window of a built payment, in seconds. */
+export const PAYMENT_TIMEOUT_SECONDS = 600
+
+/**
+ * Upper time bound, in Unix seconds, for a payment of this invoice, or null
+ * when the invoice already expired by the local clock.
+ *
+ * Ledger close times are whole seconds and a transaction is valid while
+ * closeTime <= maxTime. The settlement rule requires closeTime * 1000 <
+ * expiresAt, so the last settling second is ceil(expiresAt / 1000) - 1.
+ * Both bounds are absolute ledger times compared against the same
+ * `expiresAt` the verifier uses.
+ */
+export function paymentMaxTime(
+	invoice: Invoice,
+	now: number = Date.now(),
+): number | null {
+	if (now >= invoice.expiresAt) return null
+	return Math.min(
+		Math.floor(now / 1000) + PAYMENT_TIMEOUT_SECONDS,
+		Math.ceil(invoice.expiresAt / 1000) - 1,
+	)
+}
+
 /**
  * Build the unsigned native XLM payment for an invoice: exact recipient,
- * exact amount, invoice reference as text memo, 10 minute time bounds.
- * The payer signs it in their own wallet; no secret ever reaches the app.
+ * exact amount, invoice reference as text memo. The payer signs it in their
+ * own wallet; no secret ever reaches the app.
+ *
+ * Its time bounds end at the earlier of 10 minutes from now and the last
+ * ledger second that still settles the invoice (paymentMaxTime), so the
+ * network rejects a payment that would land after expiry instead of moving
+ * funds that can never settle the invoice.
  */
 export async function buildPaymentTransaction(
 	payer: string,
@@ -430,10 +494,14 @@ export async function buildPaymentTransaction(
 ): Promise<string> {
 	const validationError = validateInvoiceData(invoice, { requireId: true })
 	if (validationError) throw new Error(validationError)
+	const maxTime = paymentMaxTime(invoice)
+	if (maxTime === null)
+		throw new Error("La factura expiró y ya no puede pagarse.")
 	const account = await horizon.loadAccount(payer)
 	const transaction = new TransactionBuilder(account, {
 		fee: BASE_FEE,
 		networkPassphrase: Networks.TESTNET,
+		timebounds: { minTime: 0, maxTime },
 	})
 		.addOperation(
 			Operation.payment({
@@ -443,7 +511,6 @@ export async function buildPaymentTransaction(
 			}),
 		)
 		.addMemo(Memo.text(invoice.reference))
-		.setTimeout(600)
 		.build()
 	return transaction.toXDR()
 }

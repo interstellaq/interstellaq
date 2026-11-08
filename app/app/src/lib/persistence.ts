@@ -10,7 +10,11 @@
  * move an invoice to `settled` through lib/stellar.ts verification.
  */
 
-import { type Invoice, validateInvoiceData } from "../domain/invoice"
+import {
+	type Invoice,
+	type InvoiceStatus,
+	validateInvoiceData,
+} from "../domain/invoice"
 import { type MerchantProfile } from "../domain/merchant"
 
 const invoicesKey = (address: string) => `interstellaq.invoices.${address}`
@@ -35,10 +39,49 @@ function write(key: string, value: unknown): boolean {
 	}
 }
 
-/** All invoices of one merchant, newest first. Never throws. */
+/**
+ * Raw records of a merchant store, keeping only object entries so that a
+ * corrupt value (null, a string, a non-list) can never crash a reader.
+ * Objects are not validated here: writers preserve them, and the hash reuse
+ * check still sees every claimed transaction.
+ */
+function readRecords(address: string): Partial<Invoice>[] {
+	const stored = read<unknown>(invoicesKey(address), [])
+	if (!Array.isArray(stored)) return []
+	return stored.filter(
+		(item): item is Partial<Invoice> =>
+			typeof item === "object" && item !== null && !Array.isArray(item),
+	)
+}
+
+const STORED_STATUSES: readonly InvoiceStatus[] = [
+	"active",
+	"settled",
+	"verification_failed",
+]
+
+/**
+ * A stored record is usable only when it passes the structural invoice
+ * validation (docs/adr/0003) and carries a known status. Anything else is
+ * treated as tampered or corrupt and never reaches the UI or verification.
+ */
+export function isValidStoredInvoice(value: unknown): value is Invoice {
+	if (typeof value !== "object" || value === null) return false
+	const invoice = value as Partial<Invoice>
+	return (
+		validateInvoiceData(invoice, { requireId: true }) === null &&
+		STORED_STATUSES.includes(invoice.status as InvoiceStatus)
+	)
+}
+
+/**
+ * All structurally valid invoices of one merchant, newest first. Invalid
+ * records are skipped. Never throws.
+ */
 export function loadInvoices(address: string): Invoice[] {
-	const invoices = read<Invoice[]>(invoicesKey(address), [])
-	return [...invoices].sort((a, b) => b.createdAt - a.createdAt)
+	return readRecords(address)
+		.filter(isValidStoredInvoice)
+		.sort((a, b) => b.createdAt - a.createdAt)
 }
 
 /**
@@ -47,7 +90,7 @@ export function loadInvoices(address: string): Invoice[] {
  * reference collides with another invoice.
  */
 export function saveInvoice(address: string, invoice: Invoice): boolean {
-	const invoices = read<Invoice[]>(invoicesKey(address), [])
+	const invoices = readRecords(address)
 	const duplicate = invoices.some(
 		(existing) =>
 			existing.id !== invoice.id && existing.reference === invoice.reference,
@@ -61,24 +104,19 @@ export function saveInvoice(address: string, invoice: Invoice): boolean {
 /** Load one invoice of a merchant by id, or null. */
 export function getInvoice(address: string, id: string): Invoice | null {
 	const invoice =
-		read<Invoice[]>(invoicesKey(address), []).find(
-			(invoice) => invoice.id === id,
-		) ?? null
-	return invoice && validateInvoiceData(invoice, { requireId: true }) === null
-		? invoice
-		: null
+		readRecords(address).find((invoice) => invoice.id === id) ?? null
+	return isValidStoredInvoice(invoice) ? invoice : null
 }
 
-/** Load one invoice of a merchant by memo reference, or null. */
+/** Load one valid invoice of a merchant by memo reference, or null. */
 export function findInvoiceByReference(
 	address: string,
 	reference: string,
 ): Invoice | null {
-	return (
-		read<Invoice[]>(invoicesKey(address), []).find(
-			(invoice) => invoice.reference === reference,
-		) ?? null
-	)
+	const invoice =
+		readRecords(address).find((invoice) => invoice.reference === reference) ??
+		null
+	return isValidStoredInvoice(invoice) ? invoice : null
 }
 
 /**
@@ -91,7 +129,7 @@ export function isTxHashUsed(
 	txHash: string,
 	excludeInvoiceId?: string,
 ): boolean {
-	return read<Invoice[]>(invoicesKey(address), []).some(
+	return readRecords(address).some(
 		(invoice) =>
 			invoice.id !== excludeInvoiceId &&
 			invoice.status === "settled" &&
