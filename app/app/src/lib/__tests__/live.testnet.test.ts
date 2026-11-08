@@ -23,6 +23,11 @@ const funded = async (keypair: Keypair): Promise<void> => {
 	}
 }
 
+/** Public evidence for the run log: accounts and hashes, never secrets. */
+const record = (label: string, fields: Record<string, string>): void => {
+	console.info(`[testnet] ${label} ${JSON.stringify(fields)}`)
+}
+
 describe("live Testnet settlement", () => {
 	it("builds, signs, submits and verifies a real payment", async () => {
 		const merchant = Keypair.random()
@@ -50,6 +55,14 @@ describe("live Testnet settlement", () => {
 		expect(hash).toHaveLength(64)
 
 		const result = await verifySettlement(invoice)
+		record("valid-payment", {
+			merchant: merchant.publicKey(),
+			customer: customer.publicKey(),
+			reference: invoice.reference,
+			amount: invoice.amount,
+			txHash: hash,
+			result: JSON.stringify(result),
+		})
 		expect(result).toMatchObject({ settled: true, txHash: hash })
 		if (!result.settled) throw new Error("payment did not settle")
 		// The satisfying operation is identified explicitly, and the ledger
@@ -81,9 +94,18 @@ describe("live Testnet settlement", () => {
 		)
 		const transaction = TransactionBuilder.fromXDR(unsigned, Networks.TESTNET)
 		transaction.sign(customer)
-		await submitSignedTransaction(transaction.toXDR())
+		const hash = await submitSignedTransaction(transaction.toXDR())
 
 		const result = await verifySettlement(invoice)
+		record("wrong-amount", {
+			merchant: merchant.publicKey(),
+			customer: customer.publicKey(),
+			reference: invoice.reference,
+			invoiceAmount: invoice.amount,
+			paidAmount: wrongAmount.amount,
+			txHash: hash,
+			result: JSON.stringify(result),
+		})
 		expect(result).toEqual({ settled: false, reason: "no_match" })
 	}, 90_000)
 })

@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:net": "vitest run --config vitest.net.config.ts",
+    "test:net:scenarios": "vitest run --config vitest.scenarios.config.ts",
     "lint": "eslint .",
     "format": "prettier . --write",
     "prepare": "husky",
