@@ -90,7 +90,7 @@ web+stellar:pay?destination=<G…>&amount=<monto>&memo=<referencia>&memo_type=ME
 - `memo_type=MEMO_TEXT` y `memo` es la referencia de la factura, sin cambios.
 - `destination` y `amount` son los de la factura; el monto no se convierte a número.
 - `network_passphrase` siempre está presente y decodifica a `Test SDF Network ; September 2015`. SEP-0007 asume la red pública cuando falta.
-- `msg`, opcional, lleva el concepto de la factura. Es texto fuera de la cadena y no sustituye al memo.
+- `msg`, opcional, lleva el concepto de la factura. Es texto fuera de la cadena y no sustituye al memo. En la página del pagador el concepto procede del QR y no es confiable, por lo que `msg` se omite si contiene caracteres de control (saltos de línea incluidos), de formato (controles bidireccionales, marcas y caracteres de ancho cero) o separadores de línea o párrafo, que podrían mostrarse de forma engañosa en la billetera. El resto del URI y la factura no cambian.
 - Cada valor se codifica con `encodeURIComponent` (espacio como `%20`, no `+`), de modo que `decodeURIComponent` y `URLSearchParams` obtienen el mismo valor.
 - No se usan `callback`, `origin_domain` ni `signature`: firmar la solicitud exige un dominio con `stellar.toml`.
 
@@ -104,7 +104,12 @@ No se genera URI para una factura estructuralmente inválida, liquidada o expira
 
 #### Interoperabilidad
 
-No verificada. Ninguna billetera ha superado todavía la prueba manual de `docs/TESTNET-VALIDATION.md`, por lo que el botón permanece plegado y marcado como experimental, y el camino recomendado es la firma con Wallets Kit. La conformidad del URI se comprueba en las pruebas unitarias con el analizador SEP-7 de `@stellar/typescript-wallet-sdk`; eso demuestra conformidad estructural, no compatibilidad con una billetera concreta.
+No verificada. Ninguna billetera ha superado todavía la prueba manual de `docs/TESTNET-VALIDATION.md`, por lo que el botón permanece plegado y marcado como experimental, y el camino recomendado es la firma con Wallets Kit. Las pruebas unitarias (`handoff.test.ts`) comprueban la conformidad estructural del URI de dos maneras:
+
+- Comprobaciones propias, que son las que sostienen la conformidad: la cadena exacta de una factura de referencia escrita a partir de la especificación, un analizador independiente que decodifica cada valor con `decodeURIComponent` y conserva los parámetros duplicados, y una lista cerrada de los parámetros que SEP-0007 define para `pay`.
+- Una segunda lectura con el analizador SEP-7 de `@stellar/typescript-wallet-sdk` 5.1.0 (solo dependencia de desarrollo). Ese analizador comprueba el esquema y la operación, que `destination` sea una dirección G, M o C válida, que `msg` no supere 300 caracteres y que `origin_domain`, si existe, sea un nombre de dominio válido. No valida el valor de `memo_type`, no rechaza parámetros desconocidos como `asset` o `network`, decodifica con `URLSearchParams` (por lo que leería `+` como espacio y no habría detectado el defecto de codificación original) y asume la red pública si falta `network_passphrase`. No es una validación exhaustiva de SEP-0007.
+
+Ambas demuestran conformidad estructural, no compatibilidad con una billetera concreta.
 
 ### Registro de comercio: transacción sin efecto firmada
 

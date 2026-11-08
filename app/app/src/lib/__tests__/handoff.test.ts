@@ -1,8 +1,10 @@
 import {
 	Account,
 	Keypair,
+	MuxedAccount,
 	Networks,
 	type Operation,
+	StrKey,
 	type Transaction,
 	TransactionBuilder,
 } from "@stellar/stellar-sdk"
@@ -272,13 +274,17 @@ describe("buildSep7PayUri", () => {
 		expect(decoded.get("msg")).toBe("A")
 	})
 
+	it("rejects a valid muxed account as destination", () => {
+		// Invoices only admit G accounts; a well-formed M address of the same
+		// account is still rejected rather than passed to the wallet.
+		const muxed = new MuxedAccount(new Account(RECIPIENT, "0"), "1").accountId()
+		expect(StrKey.isValidMed25519PublicKey(muxed)).toBe(true)
+		expect(buildSep7PayUri(makeInvoice({ recipient: muxed }), NOW)).toBeNull()
+	})
+
 	it("rejects structurally invalid invoices", () => {
 		for (const overrides of [
 			{ recipient: "GABC" },
-			{
-				recipient:
-					"MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-			},
 			{ reference: "invalid" },
 			{ reference: "ISQABCDEFGHIJ&x=1" },
 			{ amount: "0" },
@@ -292,6 +298,34 @@ describe("buildSep7PayUri", () => {
 			{ note: "x".repeat(61) },
 		]) {
 			expect(buildSep7PayUri(makeInvoice(overrides), NOW)).toBeNull()
+		}
+	})
+
+	it("omits msg when the concept could render misleadingly", () => {
+		for (const note of [
+			"Pedido \u202E2401 ognip", // right-to-left override
+			"Pedido \u2066oculto\u2069", // bidi isolate
+			"Pedido\u200F 42", // right-to-left mark
+			"Pedido\nRed: Mainnet", // line break forging a second line
+			"Pedido\u2028Red: Mainnet", // line separator
+			"Pedido\u0000 42", // NUL
+			"Pedido\u0085 42", // C1 control (next line)
+			"Pe\u200Bdido", // zero-width space
+		]) {
+			const invoice = makeInvoice({ note })
+			const snapshot = structuredClone(invoice)
+			const pairs = parsePayUri(sep7(invoice))
+			expect(pairs.map(([key]) => key)).toEqual([
+				"destination",
+				"amount",
+				"memo",
+				"memo_type",
+				"network_passphrase",
+			])
+			expect(new Map(pairs)).toEqual(
+				new Map(parsePayUri(sep7(makeInvoice({ note: undefined })))),
+			)
+			expect(invoice).toEqual(snapshot)
 		}
 	})
 

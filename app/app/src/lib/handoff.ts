@@ -106,6 +106,14 @@ export const SEP7_PAY_PREFIX = "web+stellar:pay?"
 export const SEP7_MSG_MAX_LENGTH = 300
 
 /**
+ * Characters that can make `msg` render misleadingly in a wallet: control
+ * characters (line breaks that forge extra lines), format characters (bidi
+ * overrides, isolates and marks that reorder text, zero-width characters
+ * that hide it) and line or paragraph separators.
+ */
+const MSG_UNSAFE = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u
+
+/**
  * Minimum time left before expiry for offering the SEP-7 handoff. `pay` has
  * no time bounds, so the payer must open the wallet, review and sign before
  * the invoice expires. Five minutes leaves room for that review while
@@ -128,7 +136,9 @@ export const SEP7_MIN_REMAINING_MS = 5 * 60_000
  * - `network_passphrase` is always present: SEP-0007 assumes the public
  *   network when it is missing.
  * - `msg` carries the invoice concept when there is one. It is off-chain
- *   display text and never replaces the memo.
+ *   display text and never replaces the memo. A concept from a shared QR is
+ *   untrusted, so `msg` is omitted when it contains MSG_UNSAFE characters;
+ *   every other parameter and the invoice itself stay unchanged.
  *
  * Every value is encoded with `encodeURIComponent`, so a space is `%20`.
  * `URLSearchParams` would emit `+`, which a wallet decoding with
@@ -150,7 +160,7 @@ export function buildSep7PayUri(
 		["network_passphrase", Networks.TESTNET],
 	]
 	const msg = invoice.note?.trim()
-	if (msg) {
+	if (msg && !MSG_UNSAFE.test(msg)) {
 		if (msg.length > SEP7_MSG_MAX_LENGTH) return null
 		params.push(["msg", msg])
 	}
