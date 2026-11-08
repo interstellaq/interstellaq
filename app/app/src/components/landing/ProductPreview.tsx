@@ -8,17 +8,19 @@ import styles from "./ProductPreview.module.css"
 const PREVIEW_QR_TEXT =
 	"InterstellaQ: ejemplo ilustrativo. Esto no es una solicitud de pago."
 
+const STAGES = ["Solicitud creada", "QR compartido", "Pago verificado"]
+
 const CHECKS = [
 	"Memo igual a la referencia",
 	"Destinatario correcto",
 	"Monto exacto en XLM",
-	"Confirmado antes del vencimiento",
+	"Antes del vencimiento",
 ]
 
-function CheckIcon() {
+function CheckIcon({ className }: { className?: string }) {
 	return (
 		<svg
-			className={styles.checkIcon}
+			className={className}
 			viewBox="0 0 16 16"
 			width="16"
 			height="16"
@@ -38,12 +40,15 @@ function CheckIcon() {
 }
 
 /**
- * Static product view for the hero: a settled payment request with the
- * checks InterstellaQ runs against Horizon. Fictitious data, labelled as
- * such, and no interactive elements, so it can't be mistaken for a real
- * invoice or take keyboard focus.
+ * Static product view for the hero: one payment request through its three
+ * stages (created, shared by QR, verified), ending on the checks
+ * InterstellaQ runs against Horizon. Fictitious data, labelled as such, and
+ * no interactive elements, so it can't be mistaken for a real invoice or
+ * take keyboard focus.
  */
 export function ProductPreview() {
+	const last = STAGES.length - 1
+
 	return (
 		<figure className={styles.preview}>
 			<div className={styles.card}>
@@ -55,52 +60,77 @@ export function ProductPreview() {
 					</span>
 				</div>
 
-				<p className={styles.kicker}>Solicitud de pago</p>
-				<p className={styles.amount}>
-					25.00 <span className={styles.asset}>XLM</span>
-				</p>
+				<ol className={styles.stages} aria-label="Etapas del ejemplo">
+					{STAGES.map((stage, index) => (
+						<li
+							key={stage}
+							className={index === last ? styles.stageFinal : styles.stage}
+						>
+							<span className={styles.stageMarker} aria-hidden="true">
+								{index === last ? <CheckIcon /> : index + 1}
+							</span>
+							<span className={styles.stageLabel}>{stage}</span>
+						</li>
+					))}
+				</ol>
 
-				<dl className={styles.details}>
-					<div className={styles.detailRow}>
-						<dt>Referencia (memo)</dt>
-						<dd className={styles.mono}>ISQK7M2QP4XRA</dd>
+				<div className={styles.body}>
+					<div className={styles.request}>
+						<p className={styles.kicker}>Solicitud de pago</p>
+						<p className={styles.amount}>
+							25.00 <span className={styles.asset}>XLM</span>
+						</p>
+						<dl className={styles.details}>
+							<div>
+								<dt>Referencia (memo)</dt>
+								<dd className={styles.mono}>ISQK7M2QP4XRA</dd>
+							</div>
+							<div>
+								<dt>Vence en</dt>
+								<dd>15 minutos</dd>
+							</div>
+						</dl>
 					</div>
-					<div className={styles.detailRow}>
-						<dt>Vencimiento</dt>
-						<dd>15 minutos</dd>
+					<div className={styles.qrBlock} aria-hidden="true">
+						<div className={styles.qr}>
+							<QRCodeSVG
+								value={PREVIEW_QR_TEXT}
+								size={152}
+								bgColor="#f7f9fc"
+								fgColor="#090b16"
+								level="L"
+								marginSize={2}
+							/>
+						</div>
+						<span className={styles.qrLabel}>QR de ejemplo</span>
 					</div>
-				</dl>
+				</div>
 
-				<div className={styles.verify}>
-					<div className={styles.qr} aria-hidden="true">
-						<QRCodeSVG
-							value={PREVIEW_QR_TEXT}
-							size={104}
-							bgColor="#f7f9fc"
-							fgColor="#090b16"
-							level="L"
-							marginSize={2}
-						/>
+				<div className={styles.verified}>
+					<div className={styles.verifiedHead}>
+						<span className={styles.verifiedIcon} aria-hidden="true">
+							<CheckIcon />
+						</span>
+						<div>
+							<p className={styles.verifiedTitle}>Pago verificado</p>
+							<p className={styles.verifiedMeta}>
+								{/* No-break spaces keep "Horizon · Testnet" on one line. */}
+								Confirmado en {"Horizon · Testnet"}
+							</p>
+						</div>
 					</div>
 					<ul className={styles.checks}>
 						{CHECKS.map((check) => (
 							<li key={check}>
-								<CheckIcon />
+								<CheckIcon className={styles.checkIcon} />
 								{check}
 							</li>
 						))}
 					</ul>
 				</div>
-
-				<p className={styles.status}>
-					<CheckIcon />
-					<span>
-						<strong>Liquidada</strong> · verificada en Horizon
-					</span>
-				</p>
 			</div>
 			<figcaption className={styles.caption}>
-				Ejemplo ilustrativo con datos ficticios.
+				Ejemplo ilustrativo con datos ficticios, no una transacción real.
 			</figcaption>
 		</figure>
 	)

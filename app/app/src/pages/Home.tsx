@@ -1,42 +1,50 @@
 import { Link } from "react-router-dom"
 import { HeroVisual } from "../components/landing/HeroVisual"
 import { ProductPreview } from "../components/landing/ProductPreview"
+import { TrustIcon, type TrustIconName } from "../components/landing/TrustIcon"
 import styles from "./Home.module.css"
 
 const STEPS = [
 	{
 		title: "Crea la solicitud",
-		body: "Conecta tu wallet, registra el comercio con una firma en Testnet y fija el monto en XLM y el vencimiento.",
+		body: "Conecta tu wallet y define el monto en XLM y el vencimiento.",
 	},
 	{
-		title: "Compártela por QR",
-		body: "El cliente abre el enlace, revisa destinatario, monto y referencia, y autoriza el pago desde su wallet.",
+		title: "Comparte el QR",
+		body: "El cliente revisa los datos del pago y lo autoriza desde su wallet.",
 	},
 	{
-		title: "Verifica la liquidación",
-		body: "InterstellaQ consulta Horizon y marca la factura como liquidada, con enlace a la transacción en stellar.expert.",
+		title: "Verifica el pago",
+		body: "InterstellaQ lo confirma en Horizon y marca la factura como liquidada.",
 	},
 ]
 
-const FEATURES = [
+// Each claim maps to the code: buildPaymentTransaction (payment straight to
+// invoice.recipient, signed by the payer's wallet), the Horizon scan, and
+// evaluateTransaction (memo, recipient, exact amount, expiry).
+const TRUST: { icon: TrustIconName; title: string; body: string }[] = [
 	{
+		icon: "direct",
 		title: "Sin custodia",
-		body: "El pago va de la wallet del cliente a la cuenta del comercio. La aplicación no guarda claves privadas ni fondos.",
+		body: "El pago va directo de la wallet del cliente a la cuenta Stellar del comercio.",
 	},
 	{
-		title: "Verificación estricta",
-		body: "Solo liquida un pago nativo en XLM con la referencia, el destinatario y el monto exactos, confirmado antes del vencimiento.",
+		icon: "network",
+		title: "Verificación en Horizon",
+		body: "La liquidación se comprueba con las transacciones registradas en la red.",
 	},
 	{
-		title: "Evidencia pública",
-		body: "Cada registro de comercio y cada factura liquidada enlazan su transacción en el explorador de Testnet.",
+		icon: "checklist",
+		title: "Control de la solicitud",
+		body: "Memo, destinatario, monto y plazo deben coincidir para darlo por verificado.",
 	},
 ]
 
-const SCOPE = [
-	"Funciona sobre Stellar Testnet con XLM de prueba, sin valor real.",
-	"Solo XLM nativo. Los activos emitidos quedan fuera de esta versión.",
-	"Las facturas se guardan en el navegador del comercio, sin backend.",
+const SPECS = [
+	{ term: "Red", value: "Stellar Testnet" },
+	{ term: "Activo", value: "XLM nativo" },
+	{ term: "Facturas", value: "Guardadas en tu navegador" },
+	{ term: "Arquitectura", value: "No custodial" },
 ]
 
 /**
@@ -97,8 +105,11 @@ export default function Home() {
 					Cómo funciona
 				</h2>
 				<ol className={styles.steps}>
-					{STEPS.map((step) => (
-						<li key={step.title} className={styles.panel}>
+					{STEPS.map((step, index) => (
+						<li key={step.title} className={styles.step}>
+							<span className={styles.stepNumber} aria-hidden="true">
+								{index + 1}
+							</span>
 							<h3>{step.title}</h3>
 							<p>{step.body}</p>
 						</li>
@@ -110,28 +121,37 @@ export default function Home() {
 				<h2 id="landing-features" className={styles.sectionTitle}>
 					Confianza verificable
 				</h2>
-				<ul className={styles.features}>
-					{FEATURES.map((feature) => (
-						<li key={feature.title} className={styles.panel}>
-							<h3>{feature.title}</h3>
-							<p>{feature.body}</p>
+				<ul className={styles.trust}>
+					{TRUST.map((item) => (
+						<li key={item.title} className={styles.trustItem}>
+							<span className={styles.trustIcon}>
+								<TrustIcon name={item.icon} />
+							</span>
+							<h3>{item.title}</h3>
+							<p>{item.body}</p>
 						</li>
 					))}
 				</ul>
 			</section>
 
-			<section
-				className={`${styles.section} ${styles.scope}`}
-				aria-labelledby="landing-scope"
-			>
-				<h2 id="landing-scope" className={styles.sectionTitle}>
-					Alcance de esta versión
-				</h2>
-				<ul className={styles.scopeList}>
-					{SCOPE.map((item) => (
-						<li key={item}>{item}</li>
+			<section className={styles.scope} aria-labelledby="landing-scope">
+				<div className={styles.scopeIntro}>
+					<h2 id="landing-scope" className={styles.sectionTitle}>
+						Una demo completa sobre Testnet
+					</h2>
+					<p>
+						Recorre el flujo de cobro de principio a fin con XLM de prueba, sin
+						mover dinero real.
+					</p>
+				</div>
+				<dl className={styles.specs}>
+					{SPECS.map((spec) => (
+						<div key={spec.term} className={styles.spec}>
+							<dt>{spec.term}</dt>
+							<dd>{spec.value}</dd>
+						</div>
 					))}
-				</ul>
+				</dl>
 			</section>
 		</div>
 	)
