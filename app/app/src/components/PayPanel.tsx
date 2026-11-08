@@ -1,6 +1,7 @@
 import {
 	connectWallet,
 	errorMessage,
+	getWalletNetwork,
 	networkPassphrase,
 } from "@stellar-scaffold/app-lib"
 import { useState } from "react"
@@ -14,6 +15,7 @@ import {
 	submitSignedTransaction,
 } from "../lib/stellar"
 import { verifyAndUpdate } from "../lib/verify"
+import { signWithConfirmedTestnet } from "../lib/walletNetwork"
 
 interface PayPanelProps {
 	invoice: Invoice
@@ -71,11 +73,21 @@ export function PayPanel({ invoice, onUpdated }: PayPanelProps) {
 		setWorking(true)
 		try {
 			const unsigned = await buildPaymentTransaction(address, invoice)
-			const { signedTxXdr } = await signTransaction(unsigned, {
-				address,
+			const signed = await signWithConfirmedTestnet(
+				{ address, isPending },
 				networkPassphrase,
-			})
-			const hash = await submitSignedTransaction(signedTxXdr)
+				() =>
+					signTransaction(unsigned, {
+						address,
+						networkPassphrase,
+					}),
+				getWalletNetwork,
+			)
+			if (!signed.ok) {
+				addNotification(signed.message, "error")
+				return
+			}
+			const hash = await submitSignedTransaction(signed.value.signedTxXdr)
 			setLastTxHash(hash)
 			addNotification(
 				"Pago enviado a Testnet. Verificando liquidación.",
