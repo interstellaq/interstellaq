@@ -72,3 +72,37 @@
 .footerNav a:hover {
 	color: var(--color-text);
 }
+
+/* Narrow screens: the one-row header needs about 600px disconnected and
+   800px with a wallet connected. Below 900px it wraps into two rows (logo
+   and account controls, then navigation), with nothing hidden. */
+@media (max-width: 899.98px) {
+	.header {
+		flex-wrap: wrap;
+		gap: 0.5rem 1rem;
+		padding: 0.75rem 1rem;
+	}
+
+	/* The account controls (ConnectAccount): pushed to the right and allowed
+	   to wrap their own items, so a long balance never forces overflow. */
+	.header > :last-child {
+		margin-left: auto;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		row-gap: 0.5rem;
+		min-width: 0;
+	}
+
+	.headerNav {
+		order: 1;
+		flex: 1 1 100%;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.5rem;
+		/* Aligns the link text, not the link padding, with the logo. */
+		margin-left: -0.5rem;
+	}
+
+	.headerNav a {
+		white-space: nowrap;
+	}
+}

@@ -1,90 +1,157 @@
 import { Link } from "react-router-dom"
+import { HeroMedia } from "../components/landing/HeroMedia"
+import { HeroVisual } from "../components/landing/HeroVisual"
+import { TrustIcon, type TrustIconName } from "../components/landing/TrustIcon"
+import styles from "./Home.module.css"
+
+const STEPS = [
+	{
+		title: "Crea la solicitud",
+		body: "Conecta tu wallet y define el monto en XLM y el vencimiento.",
+	},
+	{
+		title: "Comparte el QR",
+		body: "El cliente revisa los datos del pago y lo autoriza desde su wallet.",
+	},
+	{
+		title: "Verifica el pago",
+		body: "InterstellaQ lo confirma en Horizon y marca la factura como liquidada.",
+	},
+]
+
+// Each claim maps to the code: buildPaymentTransaction (payment straight to
+// invoice.recipient, signed by the payer's wallet), the Horizon scan, and
+// evaluateTransaction (memo, recipient, exact amount, expiry).
+const TRUST: { icon: TrustIconName; title: string; body: string }[] = [
+	{
+		icon: "direct",
+		title: "Sin custodia",
+		body: "El pago va directo de la wallet del cliente a la cuenta Stellar del comercio.",
+	},
+	{
+		icon: "network",
+		title: "Verificación en Horizon",
+		body: "La liquidación se comprueba con las transacciones registradas en la red.",
+	},
+	{
+		icon: "checklist",
+		title: "Control de la solicitud",
+		body: "Memo, destinatario, monto y plazo deben coincidir para darlo por verificado.",
+	},
+]
+
+const SPECS = [
+	{ term: "Red", value: "Stellar Testnet" },
+	{ term: "Activo", value: "XLM nativo" },
+	{ term: "Facturas", value: "Guardadas en tu navegador" },
+	{ term: "Arquitectura", value: "No custodial" },
+]
 
 /**
- * Home: the pitch in one screen (criterio "claridad del pitch"): what
- * InterstellaQ does, for whom, and why Stellar, plus the two entry points
- * of the demo flow.
+ * Landing: what InterstellaQ does and one entry point to the app. Styles
+ * live in Home.module.css and the landing components so nothing here leaks
+ * into the merchant panel or the invoice page.
  */
 export default function Home() {
 	return (
-		<div className="iq-home">
-			<section className="iq-hero">
-				<p className="iq-hero__tag">Pagos abiertos sin fronteras</p>
-				<h1>
-					Cobra con QR en Stellar, sin custodiar el dinero de tus clientes
-				</h1>
-				<p className="iq-hero__lead">
-					InterstellaQ permite a un comercio publicar una factura con monto fijo
-					y expiración. El cliente escanea, revisa los datos en su wallet y
-					autoriza el pago. La liquidación se verifica en Testnet contra la
-					transacción real, con evidencia pública en stellar.expert.
-				</p>
-				<div className="iq-hero__actions">
-					<Link to="/comercio" className="iq-btn">
-						Crear una factura
-					</Link>
-					<a
-						href="https://stellar.expert/explorer/testnet"
-						target="_blank"
-						rel="noreferrer"
-						className="iq-btn iq-btn--ghost"
-					>
-						Ver la red en stellar.expert
-					</a>
+		<div className={styles.landing}>
+			<section className={styles.hero} aria-labelledby="landing-title">
+				<div className={styles.heroContent}>
+					<p className={styles.eyebrow}>
+						<span className={styles.eyebrowDot} aria-hidden="true" />
+						Pagos no custodiales en Stellar Testnet
+					</p>
+					<h1 id="landing-title" className={styles.title}>
+						Cobra con Stellar. <span>Verifica cada pago.</span>
+					</h1>
+					<p className={styles.lead}>
+						Crea solicitudes de pago en XLM, compártelas por QR y verifica su
+						liquidación sin custodiar fondos.
+					</p>
+					<div className={styles.actions}>
+						<Link to="/comercio" className={styles.cta}>
+							Abrir aplicación
+							<svg
+								viewBox="0 0 16 16"
+								width="16"
+								height="16"
+								aria-hidden="true"
+								focusable="false"
+							>
+								<path
+									d="M3 8h10M9 4l4 4-4 4"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								/>
+							</svg>
+						</Link>
+					</div>
+					<p className={styles.note}>
+						Demo sobre Stellar Testnet: no mueve dinero real. InterstellaQ nunca
+						te pide claves privadas; tu wallet firma cada transacción.
+					</p>
 				</div>
-				<p className="iq-muted">
-					Demo sobre Stellar Testnet. Ninguna clave privada pasa por la
-					aplicación.
-				</p>
+
+				<HeroVisual label="Vista previa del producto">
+					<HeroMedia />
+				</HeroVisual>
 			</section>
 
-			<section className="iq-grid">
-				<div className="card">
-					<h2>El problema</h2>
-					<p>
-						Los pagos transfronterizos para comercios siguen siendo lentos,
-						costosos y difíciles de integrar. Cada transferencia pierde tiempo,
-						pierde dinero y pierde contexto.
-					</p>
-				</div>
-				<div className="card">
-					<h2>La solución</h2>
-					<p>
-						Una solicitud de pago Stellar nativa: factura pública con referencia
-						única, QR con los datos completos y liquidación verificada on-chain.
-						El comercio nunca toca los fondos del cliente.
-					</p>
-				</div>
-				<div className="card">
-					<h2>Por qué Stellar</h2>
-					<p>
-						La red liquida transacciones en segundos por una fracción de
-						centavo, con operaciones nativas, memos para correlación y wallets
-						compatibles con SEP-7.
-					</p>
-				</div>
-			</section>
-
-			<section className="card iq-steps">
-				<h2>Cómo funciona</h2>
-				<ol>
-					<li>
-						El comercio conecta su cuenta, se registra con una firma en Testnet
-						y crea una factura con monto y expiración.
-					</li>
-					<li>
-						Comparte el código QR. El cliente revisa destinatario, monto,
-						referencia y expiración antes de autorizar.
-					</li>
-					<li>
-						La wallet del cliente firma el pago. InterstellaQ verifica la
-						transacción en Horizon y marca la factura como liquidada con su
-						evidencia.
-					</li>
+			<section className={styles.section} aria-labelledby="landing-steps">
+				<h2 id="landing-steps" className={styles.sectionTitle}>
+					Cómo funciona
+				</h2>
+				<ol className={styles.steps}>
+					{STEPS.map((step, index) => (
+						<li key={step.title} className={styles.step}>
+							<span className={styles.stepNumber} aria-hidden="true">
+								{index + 1}
+							</span>
+							<h3>{step.title}</h3>
+							<p>{step.body}</p>
+						</li>
+					))}
 				</ol>
-				<Link to="/comercio" className="iq-btn">
-					Abrir panel del comercio
-				</Link>
+			</section>
+
+			<section className={styles.section} aria-labelledby="landing-features">
+				<h2 id="landing-features" className={styles.sectionTitle}>
+					Confianza verificable
+				</h2>
+				<ul className={styles.trust}>
+					{TRUST.map((item) => (
+						<li key={item.title} className={styles.trustItem}>
+							<span className={styles.trustIcon}>
+								<TrustIcon name={item.icon} />
+							</span>
+							<h3>{item.title}</h3>
+							<p>{item.body}</p>
+						</li>
+					))}
+				</ul>
+			</section>
+
+			<section className={styles.scope} aria-labelledby="landing-scope">
+				<div className={styles.scopeIntro}>
+					<h2 id="landing-scope" className={styles.sectionTitle}>
+						Una demo completa sobre Testnet
+					</h2>
+					<p>
+						Recorre el flujo de cobro de principio a fin con XLM de prueba, sin
+						mover dinero real.
+					</p>
+				</div>
+				<dl className={styles.specs}>
+					{SPECS.map((spec) => (
+						<div key={spec.term} className={styles.spec}>
+							<dt>{spec.term}</dt>
+							<dd>{spec.value}</dd>
+						</div>
+					))}
+				</dl>
 			</section>
 		</div>
 	)
