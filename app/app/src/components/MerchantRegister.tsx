@@ -11,6 +11,7 @@ import { useWallet } from "../hooks/useWallet"
 import { saveMerchant } from "../lib/persistence"
 import {
 	buildRegistrationTransaction,
+	RegistrationConfirmationUnavailableError,
 	submitRegistration,
 } from "../lib/registration"
 import { signWithConfirmedTestnet } from "../lib/walletNetwork"
@@ -68,6 +69,20 @@ export function MerchantRegister({ onRegistered }: MerchantRegisterProps) {
 			addNotification("Comercio registrado en Testnet.", "success")
 			onRegistered(profile)
 		} catch (error) {
+			if (error instanceof RegistrationConfirmationUnavailableError) {
+				if (!saveMerchant(error.profile)) {
+					setFormError(
+						"El registro se envió, pero no se pudo guardar su verificación pendiente en este navegador.",
+					)
+					return
+				}
+				addNotification(
+					"El registro fue enviado. Testnet aún no responde; se verificará antes de crear facturas.",
+					"warning",
+				)
+				onRegistered(error.profile)
+				return
+			}
 			setFormError(errorMessage(error))
 		} finally {
 			setSubmitting(false)
