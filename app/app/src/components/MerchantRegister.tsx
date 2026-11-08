@@ -1,5 +1,6 @@
 import {
 	errorMessage,
+	getWalletNetwork,
 	networkPassphrase,
 	shortAddress,
 } from "@stellar-scaffold/app-lib"
@@ -12,6 +13,7 @@ import {
 	buildRegistrationTransaction,
 	submitRegistration,
 } from "../lib/registration"
+import { signWithConfirmedTestnet } from "../lib/walletNetwork"
 
 interface MerchantRegisterProps {
 	onRegistered: (profile: MerchantProfile) => void
@@ -23,7 +25,7 @@ interface MerchantRegisterProps {
  * before the display name is stored. No secret is ever collected (NFR-02).
  */
 export function MerchantRegister({ onRegistered }: MerchantRegisterProps) {
-	const { address, signTransaction } = useWallet()
+	const { address, isPending, signTransaction } = useWallet()
 	const { addNotification } = useNotification()
 	const [displayName, setDisplayName] = useState("")
 	const [formError, setFormError] = useState<string | null>(null)
@@ -41,14 +43,24 @@ export function MerchantRegister({ onRegistered }: MerchantRegisterProps) {
 		setSubmitting(true)
 		try {
 			const unsigned = await buildRegistrationTransaction(address)
-			const { signedTxXdr } = await signTransaction(unsigned, {
-				address,
+			const signed = await signWithConfirmedTestnet(
+				{ address, isPending },
 				networkPassphrase,
-			})
+				() =>
+					signTransaction(unsigned, {
+						address,
+						networkPassphrase,
+					}),
+				getWalletNetwork,
+			)
+			if (!signed.ok) {
+				setFormError(signed.message)
+				return
+			}
 			const profile = await submitRegistration(
 				address,
 				displayName,
-				signedTxXdr,
+				signed.value.signedTxXdr,
 			)
 			if (!saveMerchant(profile)) {
 				throw new Error("No se pudo guardar el registro en este navegador.")
