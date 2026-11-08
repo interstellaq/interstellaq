@@ -49,7 +49,7 @@ El chequeo se ejecuta automáticamente cada 20 segundos mientras el panel del co
 
 ## Preguntas de arquitectura: resueltas en ADR 0002
 
-- ¿Qué billetera(s) y formatos de solicitud QR/URI son soportados demostrablemente? Stellar Wallets Kit (Freighter incluido) para la firma dentro de la aplicación, más un URI SEP-7 `web+stellar://pay`; el QR lleva la solicitud completa en el fragmento de la URL.
+- ¿Qué billetera(s) y formatos de solicitud QR/URI son soportados demostrablemente? Stellar Wallets Kit (Freighter incluido) para la firma dentro de la aplicación, más un URI SEP-7 `web+stellar:pay` experimental, no verificado con ninguna billetera; el QR lleva la solicitud completa en el fragmento de la URL.
 - ¿Cómo se representan y correlacionan las referencias de factura en cadena? Un memo de texto único (`ISQ` + 10 caracteres base32, dentro del límite de 28 bytes).
 - ¿Se necesita almacenamiento persistente de facturas fuera de cadena? Sí, pero solo en el navegador: `localStorage` claveado por la clave pública del comercio, con el payload del QR como vía entre dispositivos.
 - ¿Qué activos son prácticos para la demo de Testnet? Solo XLM nativo; los activos emitidos y las stablecoins son un ítem de hoja de ruta.

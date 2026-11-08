@@ -20,7 +20,7 @@ El MVP del hackathon funciona de extremo a extremo sobre Stellar Testnet:
 
 - Registro de comercio con prueba en cadena del control de la cuenta (transacción sin efecto firmada, evidencia vinculada en stellar.expert).
 - Facturas de monto fijo con referencias únicas en memo de texto y expiración (15 minutos a 24 horas).
-- Solicitud de pago QR que incrusta la petición completa en la URL, por lo que se abre en cualquier dispositivo sin backend, además de una entrega SEP-7 `web+stellar://pay`.
+- Solicitud de pago QR que incrusta la petición completa en la URL, por lo que se abre en cualquier dispositivo sin backend, además de una entrega SEP-7 `web+stellar:pay` experimental y todavía no verificada con ninguna billetera (ver [ADR 0002](docs/adr/0002-invoice-correlation.md)).
 - Pago del cliente a través de la billetera conectada (Stellar Wallets Kit): la aplicación construye el pago exacto en XLM, la billetera lo firma y la aplicación lo envía.
 - Verificación de la liquidación contra Horizon: transacción exitosa, memo de referencia coincidente, destinatario, monto exacto en stroops, rechazo de activos no nativos, rechazo de autopagos, las facturas vencidas nunca se liquidan y una transacción nunca puede liquidar dos facturas.
 - Monitoreo automático de pagos: el panel del comercio y la página de la factura consultan Horizon cada 20 segundos mientras hay una factura pendiente, de modo que un pago confirmado cambia el estado sin que nadie presione un botón.

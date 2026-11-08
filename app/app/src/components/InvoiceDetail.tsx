@@ -37,7 +37,10 @@ function formatDate(epochMs: number): string {
 /**
  * The reviewed payment request (FR-03, FR-04): every field the customer
  * must see before authorizing, the QR payload with its text equivalent,
- * settlement verification with public evidence, and the SEP-7 handoff.
+ * settlement verification with public evidence, and the experimental SEP-7
+ * handoff. SEP-7 stays collapsed and marked experimental until a wallet
+ * passes the Testnet interoperability check (docs/TESTNET-VALIDATION.md);
+ * the Wallets Kit payment below is the recommended path.
  */
 export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 	const { addNotification } = useNotification()
@@ -55,6 +58,8 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 
 	const status = derivedStatus(invoice, now)
 	const qrValue = buildInvoiceUrl(invoice)
+	const sep7Available =
+		status === "active" && buildSep7PayUri(invoice, now) !== null
 
 	const verify = async () => {
 		setVerifying(true)
@@ -110,11 +115,19 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 	}
 
 	const openSep7 = () => {
+		const uri = buildSep7PayUri(invoice)
+		if (uri === null) {
+			addNotification(
+				"La entrega SEP-7 ya no está disponible para esta factura. Paga con la wallet conectada.",
+				"warning",
+			)
+			return
+		}
 		addNotification(
 			"Solicitando el pago a tu wallet compatible con SEP-7.",
 			"primary",
 		)
-		window.location.href = buildSep7PayUri(invoice)
+		window.location.href = uri
 	}
 
 	return (
@@ -172,12 +185,36 @@ export function InvoiceDetail({ invoice, onUpdated }: InvoiceDetailProps) {
 						>
 							{verifying ? "Verificando..." : "Verificar estado"}
 						</button>
-						{status === "active" && (
-							<button type="button" onClick={openSep7}>
-								Abrir en wallet SEP-7
-							</button>
-						)}
 					</div>
+					{sep7Available && (
+						<details className="iq-sep7">
+							<summary>Opción experimental: abrir en wallet SEP-7</summary>
+							<p className="iq-warning">
+								No verificado con ninguna wallet. Se recomienda pagar con la
+								wallet conectada.
+							</p>
+							<ul className="iq-warning">
+								<li>
+									Antes de firmar, comprueba que tu wallet muestra Stellar
+									Testnet. Si muestra la red pública (Mainnet) o no muestra la
+									red, no firmes.
+								</li>
+								<li>
+									El memo debe ser exactamente <code>{invoice.reference}</code>{" "}
+									y el pago, un envío directo de XLM: un path payment no liquida
+									la factura.
+								</li>
+								<li>
+									El pago debe confirmarse antes de{" "}
+									{formatDate(invoice.expiresAt)}; este enlace no impone ese
+									límite.
+								</li>
+							</ul>
+							<button type="button" onClick={openSep7}>
+								Abrir en wallet SEP-7 (experimental)
+							</button>
+						</details>
+					)}
 					{monitoring && (
 						<p className="iq-monitor">
 							Monitoreo automático activo: Testnet se consulta cada{" "}

@@ -61,7 +61,9 @@ el monitoreo automático vuelve a intentarlo en el siguiente ciclo.
   pagos de comercio de bajo monto.
 - Cuentas y wallets abiertas: el cliente firma con su wallet, el comercio
   recibe los fondos directamente.
-- SEP-7 para entrega de pago a wallets compatibles.
+- SEP-7 como opción experimental de entrega a wallets: el URI sigue el
+  formato de la especificación, pero su interoperabilidad con wallets todavía
+  no está verificada. La demo usa la firma con Stellar Wallets Kit.
 - Evidencia pública: cada liquidación y cada registro se puede abrir en
   stellar.expert (explorador de Testnet).
 
