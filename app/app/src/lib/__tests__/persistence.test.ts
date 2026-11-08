@@ -81,9 +81,15 @@ describe("merchant persistence", () => {
 	})
 
 	it("rejects manipulated or cross-account registration records on reload", () => {
-		storage.set(key, JSON.stringify({ ...profile, registrationTxHash: "not-a-hash" }))
+		storage.set(
+			key,
+			JSON.stringify({ ...profile, registrationTxHash: "not-a-hash" }),
+		)
 		expect(loadMerchant(address)).toBeNull()
-		storage.set(key, JSON.stringify({ ...profile, address: Keypair.random().publicKey() }))
+		storage.set(
+			key,
+			JSON.stringify({ ...profile, address: Keypair.random().publicKey() }),
+		)
 		expect(loadMerchant(address)).toBeNull()
 	})
 })

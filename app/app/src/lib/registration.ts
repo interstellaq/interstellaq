@@ -28,6 +28,7 @@ export const REGISTRATION_MEMO = "InterstellaQ:registro"
 interface RegistrationTransactionRecord {
 	hash: string
 	successful: boolean
+	envelope_xdr: string
 	source_account: string
 	memo_type: string
 	memo?: string
@@ -63,8 +64,14 @@ export class RegistrationConfirmationUnavailableError extends Error {
 
 export interface RegistrationEvidenceOptions {
 	/**
-	 * A just-submitted transaction can briefly be absent while Horizon indexes
-	 * it. A 404 in this grace window is unavailable, not contradictory proof.
+	 * A timestamp captured during this browser session immediately before
+	 * submitting a transaction. Persisted profile metadata must never extend
+	 * Horizon's short indexing grace period after a reload.
+	 */
+	submissionStartedAt?: number
+	/**
+	 * Legacy persisted metadata. It is deliberately ignored: only an in-memory
+	 * current-submission timestamp can make a 404 temporarily unavailable.
 	 */
 	registeredAt?: number
 }
@@ -75,7 +82,19 @@ const TRANSACTION_HASH_PATTERN = /^[0-9a-f]{64}$/i
 
 export const horizonRegistrationEvidence: RegistrationEvidenceSource = {
 	transaction(hash) {
-		return horizon.transactions().transaction(hash).call()
+		return horizon
+			.transactions()
+			.transaction(hash)
+			.call()
+			.then((transaction) => ({
+				hash: transaction.hash,
+				successful: transaction.successful,
+				envelope_xdr: transaction.envelope_xdr,
+				source_account: transaction.source_account,
+				memo_type: transaction.memo_type,
+				memo: transaction.memo,
+				operation_count: transaction.operation_count,
+			}))
 	},
 	async operations(hash) {
 		const page = await horizon.operations().forTransaction(hash).limit(2).call()
@@ -98,14 +117,25 @@ function isExpectedBump(
 	)
 }
 
-function parseSignedRegistrationXdr(
+function parseRegistrationEnvelope(
 	address: string,
-	signedXdr: string,
+	envelopeXdr: string,
+	expectedHash?: string,
 ): { transaction: Transaction } | { error: string } {
 	try {
-		const transaction = TransactionBuilder.fromXDR(signedXdr, Networks.TESTNET)
+		const transaction = TransactionBuilder.fromXDR(
+			envelopeXdr,
+			Networks.TESTNET,
+		)
 		if (!(transaction instanceof Transaction)) {
 			return { error: "La transacción de registro no puede usar fee bump." }
+		}
+		if (
+			expectedHash !== undefined &&
+			transaction.hash().toString("hex").toLowerCase() !==
+				expectedHash.toLowerCase()
+		) {
+			return { error: "El sobre de registro no coincide con el hash esperado." }
 		}
 		if (transaction.source !== address) {
 			return { error: "La transacción no pertenece a la cuenta conectada." }
@@ -115,7 +145,9 @@ function parseSignedRegistrationXdr(
 			transaction.memo.value === null ||
 			transaction.memo.value.toString() !== REGISTRATION_MEMO
 		) {
-			return { error: "La transacción no contiene el memo de registro esperado." }
+			return {
+				error: "La transacción no contiene el memo de registro esperado.",
+			}
 		}
 		const [operation] = transaction.operations
 		if (
@@ -123,7 +155,9 @@ function parseSignedRegistrationXdr(
 			operation === undefined ||
 			!isExpectedBump(operation, transaction.sequence)
 		) {
-			return { error: "La transacción no contiene la operación de registro esperada." }
+			return {
+				error: "La transacción no contiene la operación de registro esperada.",
+			}
 		}
 		return { transaction }
 	} catch {
@@ -140,7 +174,7 @@ export function validateSignedRegistrationXdr(
 	address: string,
 	signedXdr: string,
 ): string | null {
-	const result = parseSignedRegistrationXdr(address, signedXdr)
+	const result = parseRegistrationEnvelope(address, signedXdr)
 	return "error" in result ? result.error : null
 }
 
@@ -149,7 +183,7 @@ export function signedRegistrationHash(
 	address: string,
 	signedXdr: string,
 ): string | null {
-	const result = parseSignedRegistrationXdr(address, signedXdr)
+	const result = parseRegistrationEnvelope(address, signedXdr)
 	return "error" in result ? null : result.transaction.hash().toString("hex")
 }
 
@@ -165,11 +199,12 @@ function isNotFound(error: unknown): boolean {
 	)
 }
 
-function notFoundIsDefinitive(options: RegistrationEvidenceOptions): boolean {
-	return (
-		typeof options.registeredAt === "number" &&
-		Date.now() - options.registeredAt >= REGISTRATION_INDEX_GRACE_MS
-	)
+function isRecentCurrentSubmission(
+	options: RegistrationEvidenceOptions,
+): boolean {
+	if (typeof options.submissionStartedAt !== "number") return false
+	const elapsed = Date.now() - options.submissionStartedAt
+	return elapsed >= 0 && elapsed < REGISTRATION_INDEX_GRACE_MS
 }
 
 /**
@@ -182,16 +217,18 @@ export async function verifyRegistrationEvidence(
 	source: RegistrationEvidenceSource = horizonRegistrationEvidence,
 	options: RegistrationEvidenceOptions = {},
 ): Promise<RegistrationEvidenceResult> {
+	if (!TRANSACTION_HASH_PATTERN.test(hash)) return { kind: "invalid" }
+	const expectedHash = hash.toLowerCase()
 	let transaction: RegistrationTransactionRecord
 	try {
-		transaction = await source.transaction(hash)
+		transaction = await source.transaction(expectedHash)
 	} catch (error) {
-		return isNotFound(error) && notFoundIsDefinitive(options)
+		return isNotFound(error) && !isRecentCurrentSubmission(options)
 			? { kind: "invalid" }
 			: { kind: "unavailable" }
 	}
 	if (
-		transaction.hash !== hash ||
+		transaction.hash.toLowerCase() !== expectedHash ||
 		!transaction.successful ||
 		transaction.source_account !== address ||
 		transaction.memo_type !== "text" ||
@@ -200,8 +237,14 @@ export async function verifyRegistrationEvidence(
 	) {
 		return { kind: "invalid" }
 	}
+	const parsed = parseRegistrationEnvelope(
+		address,
+		transaction.envelope_xdr,
+		expectedHash,
+	)
+	if ("error" in parsed) return { kind: "invalid" }
 	try {
-		const operations = await source.operations(hash)
+		const operations = await source.operations(expectedHash)
 		return operations.length === 1 &&
 			operations[0]?.type === "bump_sequence" &&
 			operations[0].source_account === address &&
@@ -250,15 +293,20 @@ export async function submitRegistration(
 	if (xdrError) throw new Error(xdrError)
 	const expectedHash = signedRegistrationHash(address, signedXdr)
 	if (expectedHash === null) throw new Error(xdrError ?? "XDR inválido.")
+	const submissionStartedAt = Date.now()
 	const submittedHash = await (dependencies.submit ?? submitSignedTransaction)(
 		signedXdr,
 	)
 	if (!TRANSACTION_HASH_PATTERN.test(submittedHash)) {
-		throw new Error("La respuesta de envío no contiene un hash de transacción válido.")
+		throw new Error(
+			"La respuesta de envío no contiene un hash de transacción válido.",
+		)
 	}
 	const hash = submittedHash.toLowerCase()
 	if (hash !== expectedHash) {
-		throw new Error("La respuesta de envío no coincide con la transacción firmada.")
+		throw new Error(
+			"La respuesta de envío no coincide con la transacción firmada.",
+		)
 	}
 	const profile: MerchantProfile = {
 		address,
@@ -270,7 +318,7 @@ export async function submitRegistration(
 		address,
 		hash,
 		dependencies.evidence,
-		{ registeredAt: profile.registeredAt },
+		{ submissionStartedAt },
 	)
 	if (confirmed.kind === "invalid") {
 		throw new Error(

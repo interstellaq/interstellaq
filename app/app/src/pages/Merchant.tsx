@@ -13,6 +13,7 @@ import {
 import { useWallet } from "../hooks/useWallet"
 import { loadInvoices, loadMerchant } from "../lib/persistence"
 import { verifyRegistrationEvidence } from "../lib/registration"
+import { canCreateInvoices } from "../lib/registrationGate"
 import { stellarExpertTxUrl } from "../lib/stellar"
 
 function formatDate(epochMs: number): string {
@@ -31,7 +32,9 @@ export default function Merchant() {
 	const [merchant, setMerchant] = useState<MerchantProfile | null>(null)
 	const [invoices, setInvoices] = useState<Invoice[]>([])
 	const [checkingRegistration, setCheckingRegistration] = useState(false)
-	const [registrationError, setRegistrationError] = useState<string | null>(null)
+	const [registrationError, setRegistrationError] = useState<string | null>(
+		null,
+	)
 	const [registrationUnavailable, setRegistrationUnavailable] = useState(false)
 	const [registrationRevision, setRegistrationRevision] = useState(0)
 	const verificationRequest = useRef(0)
@@ -61,9 +64,7 @@ export default function Merchant() {
 		}
 		setCheckingRegistration(true)
 		setRegistrationError(null)
-		void verifyRegistrationEvidence(address, stored.registrationTxHash, undefined, {
-			registeredAt: stored.registeredAt,
-		}).then(
+		void verifyRegistrationEvidence(address, stored.registrationTxHash).then(
 			(result) => {
 				if (
 					cancelled ||
@@ -100,23 +101,23 @@ export default function Merchant() {
 		setCheckingRegistration(true)
 		setRegistrationUnavailable(false)
 		const request = ++verificationRequest.current
-		void verifyRegistrationEvidence(address, stored.registrationTxHash, undefined, {
-			registeredAt: stored.registeredAt,
-		}).then((result) => {
-			if (
-				request !== verificationRequest.current ||
-				currentWalletAddress.current !== address
-			)
-				return
-			setMerchant(result.kind === "invalid" ? null : stored)
-			setRegistrationError(
-				result.kind !== "invalid"
-					? null
-					: "No se pudo validar el registro guardado en Stellar Testnet. Registra el comercio nuevamente.",
-			)
-			setRegistrationUnavailable(result.kind === "unavailable")
-			setCheckingRegistration(false)
-		})
+		void verifyRegistrationEvidence(address, stored.registrationTxHash).then(
+			(result) => {
+				if (
+					request !== verificationRequest.current ||
+					currentWalletAddress.current !== address
+				)
+					return
+				setMerchant(result.kind === "invalid" ? null : stored)
+				setRegistrationError(
+					result.kind !== "invalid"
+						? null
+						: "No se pudo validar el registro guardado en Stellar Testnet. Registra el comercio nuevamente.",
+				)
+				setRegistrationUnavailable(result.kind === "unavailable")
+				setCheckingRegistration(false)
+			},
+		)
 	}
 
 	if (isPending) {
@@ -139,7 +140,9 @@ export default function Merchant() {
 	}
 
 	if (checkingRegistration) {
-		return <p className="iq-muted">Validando registro del comercio en Testnet...</p>
+		return (
+			<p className="iq-muted">Validando registro del comercio en Testnet...</p>
+		)
 	}
 
 	if (!merchant) {
@@ -166,8 +169,8 @@ export default function Merchant() {
 					<p className="iq-muted">
 						{registrationUnavailable
 							? "Registro pendiente de confirmación en Testnet"
-							: `Registrado el ${formatDate(merchant.registeredAt)}`} · Cuenta{" "}
-						<code>{shortAddress(merchant.address)}</code>
+							: `Registrado el ${formatDate(merchant.registeredAt)}`}{" "}
+						· Cuenta <code>{shortAddress(merchant.address)}</code>
 					</p>
 				</div>
 				<a
@@ -182,7 +185,13 @@ export default function Merchant() {
 				</a>
 			</header>
 
-			{registrationUnavailable ? (
+			{canCreateInvoices(merchant, registrationUnavailable) ? (
+				<InvoiceForm
+					recipient={merchant.address}
+					recipientName={merchant.displayName}
+					onCreated={reload}
+				/>
+			) : (
 				<div className="card iq-warning">
 					<p>
 						No se pudo verificar temporalmente este registro en Testnet. No se
@@ -196,12 +205,6 @@ export default function Merchant() {
 						Reintentar verificación
 					</button>
 				</div>
-			) : (
-				<InvoiceForm
-					recipient={merchant.address}
-					recipientName={merchant.displayName}
-					onCreated={reload}
-				/>
 			)}
 			{monitoring && (
 				<p className="iq-monitor">
