@@ -10,7 +10,7 @@
  * move an invoice to `settled` through lib/stellar.ts verification.
  */
 
-import { type Invoice } from "../domain/invoice"
+import { type Invoice, validateInvoiceData } from "../domain/invoice"
 import { type MerchantProfile } from "../domain/merchant"
 
 const invoicesKey = (address: string) => `interstellaq.invoices.${address}`
@@ -60,11 +60,13 @@ export function saveInvoice(address: string, invoice: Invoice): boolean {
 
 /** Load one invoice of a merchant by id, or null. */
 export function getInvoice(address: string, id: string): Invoice | null {
-	return (
+	const invoice =
 		read<Invoice[]>(invoicesKey(address), []).find(
 			(invoice) => invoice.id === id,
 		) ?? null
-	)
+	return invoice && validateInvoiceData(invoice, { requireId: true }) === null
+		? invoice
+		: null
 }
 
 /** Load one invoice of a merchant by memo reference, or null. */

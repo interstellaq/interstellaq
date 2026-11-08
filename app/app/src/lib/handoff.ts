@@ -11,7 +11,7 @@
  *   directly into a reviewable payment (docs/adr/0002-invoice-correlation.md).
  */
 
-import { type Invoice } from "../domain/invoice"
+import { type Invoice, validateInvoiceData } from "../domain/invoice"
 
 /** Fields carried in the QR payload fragment. */
 export interface InvoicePayload {
@@ -71,17 +71,7 @@ export function decodePayload(fragment: string): InvoicePayload | null {
 	try {
 		const json = new TextDecoder().decode(base64UrlToBytes(fragment))
 		const parsed = JSON.parse(json) as Partial<InvoicePayload>
-		if (
-			typeof parsed.id !== "string" ||
-			typeof parsed.reference !== "string" ||
-			typeof parsed.recipient !== "string" ||
-			typeof parsed.amount !== "string" ||
-			typeof parsed.expiresAt !== "number" ||
-			typeof parsed.createdAt !== "number" ||
-			parsed.asset !== "XLM"
-		) {
-			return null
-		}
+		if (validateInvoiceData(parsed, { requireId: true }) !== null) return null
 		return parsed as InvoicePayload
 	} catch {
 		return null
