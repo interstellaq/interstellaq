@@ -53,7 +53,7 @@ export function ProductPreview() {
 		<figure className={styles.preview}>
 			<div className={styles.card}>
 				<div className={styles.header}>
-					<span className={styles.merchant}>Café Aurora</span>
+					<span className={styles.merchant}>Comercio de ejemplo</span>
 					<span className={styles.network}>
 						<span className={styles.networkDot} aria-hidden="true" />
 						Testnet
