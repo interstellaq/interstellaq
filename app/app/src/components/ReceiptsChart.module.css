@@ -1,0 +1,124 @@
+/* Daily confirmed receipts (Dashboard V2.1). Tokens from the product theme. */
+
+.chart {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	min-width: 0;
+	padding: clamp(1.125rem, 0.75rem + 1.6vw, 1.75rem);
+	border: 1px solid var(--lp-border);
+	border-radius: var(--lp-radius-lg);
+	background:
+		radial-gradient(
+			120% 80% at 100% 100%,
+			rgba(0, 188, 235, 0.09),
+			transparent 60%
+		),
+		var(--lp-surface);
+}
+
+.head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 0.5rem 1.5rem;
+}
+
+.chart .kicker {
+	margin: 0;
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--lp-text-secondary);
+}
+
+.total {
+	margin: 0.25rem 0 0;
+	font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.25rem);
+	font-weight: 700;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
+}
+
+.total span {
+	font-size: 0.5em;
+	font-weight: 600;
+	letter-spacing: 0;
+	color: var(--lp-success);
+}
+
+.meta {
+	margin: 0;
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	color: var(--lp-text-secondary);
+}
+
+/* Grows to fill the card when it shares a row with the invoice form. */
+.svg {
+	display: block;
+	flex: 1 1 clamp(7rem, 5rem + 6vw, 9.5rem);
+	width: 100%;
+	min-height: 7rem;
+	border-bottom: 1px solid var(--lp-border-strong);
+}
+
+.bar {
+	transition: opacity 0.15s ease;
+}
+
+.bar:hover {
+	opacity: 0.8;
+}
+
+.barEmpty {
+	fill: rgba(165, 176, 198, 0.22);
+}
+
+.axis {
+	display: flex;
+	justify-content: space-between;
+	margin-top: -0.5rem;
+	font-size: 0.75rem;
+	color: var(--lp-text-secondary);
+}
+
+.empty {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 0.25rem;
+	flex: 1 1 auto;
+	min-height: 7rem;
+	padding: 1rem 1.25rem;
+	border: 1px dashed var(--lp-border-strong);
+	border-radius: var(--lp-radius);
+	background:
+		repeating-linear-gradient(
+			90deg,
+			transparent 0 calc(100% / 14 - 6px),
+			rgba(165, 176, 198, 0.05) calc(100% / 14 - 6px) calc(100% / 14)
+		),
+		transparent;
+}
+
+.empty p {
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--lp-text-secondary);
+}
+
+.empty p:first-child {
+	font-weight: 600;
+	color: var(--lp-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bar {
+		transition: none;
+	}
+}

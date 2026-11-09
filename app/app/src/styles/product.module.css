@@ -1,0 +1,405 @@
+/* Product theme for the merchant dashboard and the invoice page (Dashboard
+   V2). It reuses the Landing V1 palette and the ProductPreview visual
+   language, scoped to .product so the global tokens in app-lib/styles.css
+   keep their current values everywhere else.
+
+   The payment, QR, SEP-7 and registration components keep their existing
+   markup and global iq-* class names. They are restyled here through
+   :global() selectors nested under the local .product root, so the look
+   changes only inside a page that opts in, and no component logic changes. */
+
+.product {
+	--lp-bg: #090b16;
+	--lp-surface: #151b2e;
+	--lp-surface-raised: #1c2440;
+	--lp-text: #f7f9fc;
+	--lp-text-secondary: #a5b0c6;
+	--lp-accent: #00bceb;
+	--lp-accent-hover: #33c9ef;
+	--lp-accent-active: #00a8d3;
+	--lp-success: #25c997;
+	--lp-warning: #ffb020;
+	--lp-error: #ff5c7a;
+	--lp-border: rgba(165, 176, 198, 0.16);
+	--lp-border-strong: rgba(165, 176, 198, 0.28);
+	--lp-radius: 12px;
+	--lp-radius-lg: 20px;
+	--lp-control-height: 44px;
+
+	color: var(--lp-text);
+	overflow-wrap: break-word;
+}
+
+/* The shared shell (App.module.css) pads <main> by 3rem at every width,
+   which leaves phones about 280px of content. On narrow screens these pages
+   reclaim 2rem per side, matching the shell header's 1rem gutter. Scoped
+   here so the landing keeps its approved spacing. */
+@media (max-width: 599.98px) {
+	.product {
+		margin-inline: -2rem;
+	}
+}
+
+/* ── Typography ─────────────────────────────────────────────────────── */
+
+.product h1 {
+	margin: 0;
+	font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2rem);
+	font-weight: 700;
+	line-height: 1.15;
+	letter-spacing: -0.025em;
+}
+
+.product h2 {
+	margin: 0 0 1rem;
+	font-size: 1.125rem;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: -0.01em;
+}
+
+.product p {
+	line-height: 1.6;
+}
+
+.product a {
+	color: var(--lp-accent);
+	text-underline-offset: 0.2em;
+}
+
+.product a:focus-visible {
+	outline: 2px solid var(--lp-accent);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+
+.product code {
+	font-family: Inconsolata, ui-monospace, monospace;
+	font-size: 0.95em;
+	letter-spacing: 0.02em;
+	padding: 0.05em 0.35em;
+	border: 1px solid var(--lp-border);
+	border-radius: 6px;
+	background: var(--lp-surface-raised);
+	color: var(--lp-text);
+	overflow-wrap: anywhere;
+}
+
+/* ── Controls ───────────────────────────────────────────────────────── */
+
+/* Secondary by default: outlined, on the raised surface. */
+.product button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	min-height: var(--lp-control-height);
+	padding: 0.625rem 1.125rem;
+	border: 1px solid var(--lp-border-strong);
+	border-radius: var(--lp-radius);
+	background: var(--lp-surface-raised);
+	color: var(--lp-text);
+	font-family: inherit;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	line-height: 1.2;
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
+}
+
+.product button:hover:not(:disabled) {
+	filter: none;
+	border-color: rgba(0, 188, 235, 0.55);
+}
+
+.product button:focus-visible {
+	outline: 2px solid var(--lp-accent);
+	outline-offset: 2px;
+}
+
+.product button:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+/* Primary actions: form submits (register, create invoice), pay now, and
+   anything marked .primary. Dark text on the accent: 8.8:1. */
+.product .primary,
+.product :global(.iq-form) button[type="submit"],
+.product :global(.iq-pay) button {
+	border-color: var(--lp-accent);
+	background: var(--lp-accent);
+	color: var(--lp-bg);
+	box-shadow: 0 8px 24px -12px rgba(0, 188, 235, 0.6);
+}
+
+.product .primary:hover:not(:disabled),
+.product :global(.iq-form) button[type="submit"]:hover:not(:disabled),
+.product :global(.iq-pay) button:hover:not(:disabled) {
+	border-color: var(--lp-accent-hover);
+	background: var(--lp-accent-hover);
+}
+
+.product .primary:active:not(:disabled),
+.product :global(.iq-form) button[type="submit"]:active:not(:disabled),
+.product :global(.iq-pay) button:active:not(:disabled) {
+	background: var(--lp-accent-active);
+}
+
+.product .primary:focus-visible,
+.product :global(.iq-form) button[type="submit"]:focus-visible,
+.product :global(.iq-pay) button:focus-visible {
+	outline-color: var(--lp-text);
+}
+
+.product input[type="text"],
+.product input:not([type]),
+.product select {
+	width: 100%;
+	min-height: var(--lp-control-height);
+	padding: 0.5rem 0.875rem;
+	border: 1px solid var(--lp-border-strong);
+	border-radius: var(--lp-radius);
+	background: var(--lp-bg);
+	color: var(--lp-text);
+	font-family: inherit;
+	font-size: 1rem;
+}
+
+.product input::placeholder {
+	color: rgba(165, 176, 198, 0.6);
+}
+
+.product input:focus,
+.product select:focus {
+	outline: none;
+}
+
+.product input:focus-visible,
+.product select:focus-visible {
+	border-color: var(--lp-accent);
+	outline: 2px solid rgba(0, 188, 235, 0.35);
+	outline-offset: 0;
+}
+
+/* ── Surfaces ───────────────────────────────────────────────────────── */
+
+.panel,
+.product :global(.card) {
+	padding: clamp(1.125rem, 0.75rem + 1.6vw, 1.75rem);
+	border: 1px solid var(--lp-border);
+	border-radius: var(--lp-radius-lg);
+	background:
+		linear-gradient(180deg, rgba(0, 188, 235, 0.05), transparent 120px),
+		var(--lp-surface);
+	box-shadow:
+		0 1px 0 rgba(247, 249, 252, 0.04) inset,
+		0 24px 60px -32px rgba(0, 0, 0, 0.7);
+	min-width: 0;
+}
+
+/* ── Shared feedback classes used by the existing components ───────── */
+
+.product :global(.iq-muted) {
+	color: var(--lp-text-secondary);
+	font-size: 0.875rem;
+}
+
+.product :global(.iq-note) {
+	color: var(--lp-text-secondary);
+}
+
+.product :global(.iq-link) {
+	color: var(--lp-accent);
+	font-weight: 500;
+}
+
+/* Errors and warnings read as callouts, not only as colored text. */
+.product :global(.iq-error),
+.product :global(.iq-warning) {
+	margin: 0.75rem 0 0;
+	padding: 0.625rem 0.875rem;
+	border: 1px solid;
+	border-left-width: 3px;
+	border-radius: 10px;
+	font-size: 0.875rem;
+	line-height: 1.55;
+}
+
+.product :global(.iq-error) {
+	border-color: rgba(255, 92, 122, 0.4);
+	border-left-color: var(--lp-error);
+	background: rgba(255, 92, 122, 0.08);
+	color: #ffb3c1;
+}
+
+.product :global(.iq-warning) {
+	border-color: rgba(255, 176, 32, 0.32);
+	border-left-color: var(--lp-warning);
+	background: rgba(255, 176, 32, 0.07);
+	color: #ffd48a;
+}
+
+.product ul:global(.iq-warning) {
+	padding-left: 2rem;
+}
+
+.product :global(.iq-warning) li + li {
+	margin-top: 0.375rem;
+}
+
+/* Inline dot, so it stays beside the first word under any text alignment. */
+.product :global(.iq-monitor) {
+	margin: 0.875rem 0 0;
+	padding: 0;
+	border: 0;
+	font-size: 0.8125rem;
+	color: var(--lp-text-secondary);
+}
+
+.product :global(.iq-monitor)::before {
+	content: "";
+	display: inline-block;
+	width: 0.5rem;
+	height: 0.5rem;
+	margin: 0 0.5rem 0.1em 0.2rem;
+	vertical-align: middle;
+	border-radius: 50%;
+	background: var(--lp-success);
+	box-shadow: 0 0 0 3px rgba(37, 201, 151, 0.18);
+}
+
+.product :global(.iq-evidence) {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.25rem 0.5rem;
+	margin: 0.875rem 0 0;
+	padding: 0.625rem 0.875rem;
+	border: 1px solid rgba(37, 201, 151, 0.4);
+	border-radius: 10px;
+	background: rgba(37, 201, 151, 0.08);
+	font-size: 0.875rem;
+	color: var(--lp-text);
+}
+
+/* ── Status badge (StatusBadge) ─────────────────────────────────────── */
+
+.product :global(.iq-badge) {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.1875rem 0.625rem;
+	border: 1px solid;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1.4;
+	white-space: nowrap;
+}
+
+.product :global(.iq-badge)::before {
+	content: "";
+	width: 0.4375rem;
+	height: 0.4375rem;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+.product :global(.iq-badge--active) {
+	border-color: rgba(0, 188, 235, 0.45);
+	background: rgba(0, 188, 235, 0.1);
+	color: var(--lp-accent);
+}
+
+.product :global(.iq-badge--settled) {
+	border-color: rgba(37, 201, 151, 0.45);
+	background: rgba(37, 201, 151, 0.1);
+	color: var(--lp-success);
+}
+
+.product :global(.iq-badge--expired) {
+	border-color: var(--lp-border-strong);
+	background: rgba(165, 176, 198, 0.08);
+	color: var(--lp-text-secondary);
+}
+
+.product :global(.iq-badge--verification_failed) {
+	border-color: rgba(255, 176, 32, 0.45);
+	background: rgba(255, 176, 32, 0.1);
+	color: var(--lp-warning);
+}
+
+/* ── Forms (MerchantRegister, InvoiceForm) ──────────────────────────── */
+
+.product :global(.iq-form) {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	max-width: none;
+}
+
+.product :global(.iq-form) h2 {
+	margin-bottom: 0.25rem;
+}
+
+.product :global(.iq-form) > p:not([class]) {
+	margin: 0 0 0.5rem;
+	color: var(--lp-text-secondary);
+	font-size: 0.9375rem;
+}
+
+.product :global(.iq-form) label {
+	margin-top: 0.75rem;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--lp-text-secondary);
+}
+
+.product :global(.iq-form) button[type="submit"] {
+	align-self: stretch;
+	margin-top: 1.25rem;
+}
+
+@media (min-width: 600px) {
+	.product :global(.iq-form) button[type="submit"] {
+		align-self: flex-start;
+	}
+}
+
+/* ── Loading skeletons ──────────────────────────────────────────────── */
+
+.skeleton {
+	display: block;
+	border-radius: 8px;
+	background: linear-gradient(
+		90deg,
+		rgba(165, 176, 198, 0.08) 0%,
+		rgba(165, 176, 198, 0.16) 50%,
+		rgba(165, 176, 198, 0.08) 100%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+	from {
+		background-position: 100% 0;
+	}
+	to {
+		background-position: -100% 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.product button {
+		transition: none;
+	}
+
+	.skeleton {
+		animation: none;
+	}
+}
