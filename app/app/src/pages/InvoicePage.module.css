@@ -1,0 +1,243 @@
+/* Invoice page (style-only pass for Dashboard V2). InvoiceDetail, PayPanel
+   and QrDisplay keep their markup and iq-* classes; this module restyles
+   them under the page root so the payment view matches the dashboard and
+   the landing ProductPreview. Tokens come from styles/product.module.css. */
+
+.page {
+	padding-bottom: 1rem;
+}
+
+.page :global(.iq-detail) {
+	display: flex;
+	flex-direction: column;
+	gap: clamp(1rem, 0.75rem + 1vw, 1.5rem);
+}
+
+/* ── Header: amount and status ──────────────────────────────────────── */
+
+.page :global(.iq-detail__header) {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 0.75rem 1rem;
+}
+
+.page :global(.iq-detail__header) > div {
+	min-width: 0;
+}
+
+.page :global(.iq-detail__amount) {
+	margin: 0;
+	font-size: clamp(2.25rem, 1.75rem + 2vw, 3rem);
+	font-weight: 700;
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
+}
+
+.page :global(.iq-detail__amount) span {
+	font-size: 0.45em;
+	font-weight: 600;
+	letter-spacing: 0;
+	color: var(--lp-accent);
+}
+
+.page :global(.iq-detail__header) :global(.iq-muted) {
+	margin: 0.375rem 0 0;
+	font-size: 0.9375rem;
+}
+
+/* ── Two columns: payment data and QR ───────────────────────────────── */
+
+.page :global(.iq-detail__grid) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: clamp(1rem, 0.75rem + 1vw, 1.5rem);
+	align-items: start;
+}
+
+/* Payment data as the raised details block from ProductPreview. */
+.page :global(.iq-details) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0.125rem;
+	margin: 0;
+	padding: 0.875rem 1rem;
+	border-radius: var(--lp-radius);
+	background: var(--lp-surface-raised);
+}
+
+.page :global(.iq-details) dt {
+	margin-top: 0.625rem;
+	font-size: 0.75rem;
+	color: var(--lp-text-secondary);
+}
+
+.page :global(.iq-details) dt:first-child {
+	margin-top: 0;
+}
+
+.page :global(.iq-details) dd {
+	margin: 0;
+	font-size: 0.9375rem;
+	overflow-wrap: anywhere;
+}
+
+.page :global(.iq-countdown) {
+	color: var(--lp-accent);
+	font-size: 0.875rem;
+	font-variant-numeric: tabular-nums;
+}
+
+.page :global(.iq-detail__actions) {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-top: 1rem;
+}
+
+.page :global(.iq-detail__actions) button {
+	flex: 1 1 auto;
+}
+
+/* ── SEP-7 (experimental, collapsed) ────────────────────────────────── */
+
+.page :global(.iq-sep7) {
+	margin-top: 1rem;
+	border: 1px solid var(--lp-border);
+	border-radius: var(--lp-radius);
+	background: rgba(28, 36, 64, 0.5);
+}
+
+.page :global(.iq-sep7) summary {
+	min-height: var(--lp-control-height);
+	padding: 0.75rem 1rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--lp-text-secondary);
+	cursor: pointer;
+}
+
+.page :global(.iq-sep7) summary:focus-visible {
+	outline: 2px solid var(--lp-accent);
+	outline-offset: -2px;
+	border-radius: var(--lp-radius);
+}
+
+.page :global(.iq-sep7)[open] summary {
+	color: var(--lp-text);
+}
+
+.page :global(.iq-sep7) > :not(summary) {
+	margin-right: 1rem;
+	margin-left: 1rem;
+}
+
+.page :global(.iq-sep7) > button {
+	margin-top: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+/* ── QR ─────────────────────────────────────────────────────────────── */
+
+.page :global(.iq-qr) {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.75rem;
+	text-align: center;
+}
+
+/* White tile behind the code, as in ProductPreview; keeps the quiet zone. */
+.page :global(.iq-qr) svg {
+	display: block;
+	width: min(100%, 15rem);
+	height: auto;
+	padding: 0.5rem;
+	border-radius: var(--lp-radius);
+	background: #ffffff;
+}
+
+.page :global(.iq-qr__caption) {
+	margin: 0;
+	font-size: 0.875rem;
+	color: var(--lp-text-secondary);
+}
+
+.page :global(.iq-qr__text) {
+	display: block;
+	width: 100%;
+	max-height: 6.5rem;
+	overflow-y: auto;
+	padding: 0.5rem 0.75rem;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	text-align: left;
+	word-break: break-all;
+}
+
+.page :global(.iq-qr) button {
+	width: 100%;
+}
+
+/* ── Pay panel ──────────────────────────────────────────────────────── */
+
+.page :global(.iq-pay) {
+	border-color: rgba(0, 188, 235, 0.35);
+}
+
+.page :global(.iq-pay) p {
+	margin-top: 0;
+	color: var(--lp-text-secondary);
+}
+
+.page :global(.iq-pay) strong {
+	color: var(--lp-text);
+}
+
+.page :global(.iq-pay) > button {
+	width: 100%;
+}
+
+/* ── Not found ──────────────────────────────────────────────────────── */
+
+.notFound {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.75rem;
+	max-width: 36rem;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.notFound p {
+	margin: 0;
+	color: var(--lp-text-secondary);
+}
+
+@media (min-width: 600px) {
+	.page :global(.iq-detail__actions) button,
+	.page :global(.iq-pay) > button,
+	.page :global(.iq-qr) button {
+		flex: 0 0 auto;
+		width: auto;
+	}
+
+	.page :global(.iq-details) {
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: 0.5rem 1.25rem;
+	}
+
+	.page :global(.iq-details) dt {
+		margin-top: 0;
+	}
+}
+
+@media (min-width: 900px) {
+	.page :global(.iq-detail__grid) {
+		grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+	}
+}
