@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "format": "prettier . --write",
     "prepare": "husky",
-    "typecheck": "tsc"
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@stellar-scaffold/app-lib": "*",
